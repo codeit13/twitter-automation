@@ -1,7 +1,6 @@
 {
   "topics": [
     "ReactJS",
-    "VueJS",
     "MongoDB",
     "ExpressJS",
     "NodeJS",
@@ -9,5 +8,5 @@
     "TailwindCSS",
     "Javascript"
   ],
-  "count": 13
+  "count": 14
 }
