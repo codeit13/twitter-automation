@@ -98,7 +98,7 @@ async function tweetWithMedia(text, mediaPath) {
 
 const generateImageFromCode = async (code) => {
   const response = await axios.post(
-    "https://teknologi-umum-graphene.fly.dev/api",
+    "https://graphene.teknologiumum.com/api",
     {
       code: code,
       language: "javascript",
