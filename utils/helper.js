@@ -141,7 +141,7 @@ const generateTweetContent = async () => {
 
   const response = JSON.parse(chatCompletion.choices[0].message.content);
 
-  // config.count += 1;
+  config.count += 1;
 
   await fs.writeFile("./utils/config.json", JSON.stringify(config, null, 2));
 
