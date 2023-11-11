@@ -10,6 +10,8 @@ const OpenAI = require("openai");
 
 const config = require("./config.json");
 
+const { generateImage } = require("./generateImage");
+
 // Your keys and tokens
 const CONSUMER_KEY = process.env.CONSUMER_KEY;
 const CONSUMER_SECRET = process.env.CONSUMER_SECRET;
@@ -97,34 +99,21 @@ async function tweetWithMedia(text, mediaPath) {
 }
 
 const generateImageFromCode = async (code) => {
-  const response = await axios.post(
-    "https://graphene.teknologiumum.com/api",
-    {
-      code: code,
-      language: "javascript",
-      theme: "slack-dark",
-      format: "png",
-      upscale: 4,
-      font: "hack",
-      border: { thickness: 40, radius: 7 },
-      showLineNumber: false,
-    },
-    {
-      headers: {
-        accept: "image/png",
-        "content-type": "application/json",
-      },
-      responseType: "arraybuffer", // Important to handle binary data
-    }
-  );
-
-  if (response.status !== 200) console.log("Failed to generate imag");
-
-  const imageBuffer = response.data; // This will be a Buffer since responseType is arraybuffer
+  const imageData = await generateImage({
+    code: code,
+    language: "javascript",
+    theme: "slack-dark",
+    format: "png",
+    upscale: 4,
+    font: "hack",
+    border: { thickness: 40, radius: 7, colour: "#2E3440" },
+    showLineNumber: false,
+    imageFormat: "png",
+  });
 
   const imagePath = `./assets/${Date.now()}.png`;
 
-  await fs.writeFile(imagePath, imageBuffer);
+  await fs.writeFile(imagePath, imageData.image);
 
   return imagePath;
 };
@@ -228,7 +217,21 @@ function bold(inputString) {
 
 async function test() {
   try {
-    console.log(bold("VueJS"));
+    const imageBuffer = await generateImage({
+      code: "console.log('Hello World')",
+      language: "javascript",
+      theme: "slack-dark",
+      format: "png",
+      upscale: 4,
+      font: "hack",
+      border: { thickness: 40, radius: 7, colour: "#2E3440" },
+      showLineNumber: false,
+      imageFormat: "png",
+    });
+
+    console.log("imageBuffer: ", imageBuffer);
+
+    await fs.writeFile("./image.png", imageBuffer.image);
   } catch (e) {
     console.log("Error: ", e);
   }
