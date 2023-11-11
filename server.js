@@ -20,7 +20,7 @@ const tweetRandomTechTip = async () => {
   }
 };
 
-tweetRandomTechTip();
+// tweetRandomTechTip();
 
 new CronJob(
   "0 */5 * * *",
