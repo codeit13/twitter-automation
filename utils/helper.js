@@ -7,6 +7,7 @@ const syncFs = require("fs");
 const fs = require("fs").promises;
 const axios = require("axios");
 const OpenAI = require("openai");
+const js_beautify = require("js-beautify");
 
 const config = require("./config.json");
 
@@ -145,6 +146,11 @@ const generateTweetContent = async () => {
     topic
   )}\n\n${response.content}`;
 
+  response.code = js_beautify(response.code, {
+    indent_size: 2,
+    space_in_empty_paren: true,
+  });
+
   return { content: response.content, code: response.code };
 };
 
@@ -217,21 +223,25 @@ function bold(inputString) {
 
 async function test() {
   try {
-    const imageBuffer = await generateImage({
-      code: "console.log('Hello World')",
-      language: "javascript",
-      theme: "slack-dark",
-      format: "png",
-      upscale: 4,
-      font: "hack",
-      border: { thickness: 40, radius: 7, colour: "#2E3440" },
-      showLineNumber: false,
-      imageFormat: "png",
+    let code = "console.log( 'Hello World!'     )     ;";
+
+    const options = { indent_size: 2, space_in_empty_paren: true };
+
+    const dataObj = {
+      completed: false,
+      id: 1,
+      title: "delectus aut autem",
+      userId: 1,
+    };
+
+    const dataJson = JSON.stringify(dataObj);
+
+    const res = js_beautify(code, {
+      indent_size: 2,
+      space_in_empty_paren: true,
     });
 
-    console.log("imageBuffer: ", imageBuffer);
-
-    await fs.writeFile("./image.png", imageBuffer.image);
+    console.log("beautified code: ", res);
   } catch (e) {
     console.log("Error: ", e);
   }
