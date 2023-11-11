@@ -7,7 +7,8 @@ const syncFs = require("fs");
 const fs = require("fs").promises;
 const axios = require("axios");
 const OpenAI = require("openai");
-const js_beautify = require("js-beautify");
+// const js_beautify = require("js-beautify");
+const prettier = require("prettier");
 
 const config = require("./config.json");
 
@@ -125,11 +126,13 @@ const generateTweetContent = async () => {
     apiKey: process.env.OPENAI_API_KEY,
   });
 
+  const tipLength = randomNumber(0, 5) >= 3 ? "6-7" : "2-3";
+
   const chatCompletion = await openai.chat.completions.create({
     messages: [
       {
         role: "user",
-        content: `Generate a 2-3 line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip. Return the response strictly in json format: { code: '', content: '' }. Make sure to beautify the code correctly, as prettier in vscode with proper indentations and include new lines wherever necessary. Also in code make sure every string after newline should not exceed max 35 chars limit.`,
+        content: `Generate a ${tipLength} line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip. Return the response strictly in json format: { code: '', content: '' }. Make sure to beautify the code correctly, as prettier in vscode with proper indentations and include new lines wherever necessary. Also in code make sure every string after newline should not exceed max 35 chars limit.`,
       },
     ],
     model: "gpt-3.5-turbo-1106",
@@ -138,7 +141,7 @@ const generateTweetContent = async () => {
 
   const response = JSON.parse(chatCompletion.choices[0].message.content);
 
-  config.count += 1;
+  // config.count += 1;
 
   await fs.writeFile("./utils/config.json", JSON.stringify(config, null, 2));
 
@@ -146,10 +149,7 @@ const generateTweetContent = async () => {
     topic
   )}\n\n${response.content}`;
 
-  response.code = js_beautify(response.code, {
-    indent_size: 2,
-    space_in_empty_paren: true,
-  });
+  response.code = await formatCode(response.code);
 
   return { content: response.content, code: response.code };
 };
@@ -219,6 +219,25 @@ function bold(inputString) {
     .map((char) => boldChars[char] || char)
     .join("");
   return boldString;
+}
+
+function formatCode(code) {
+  try {
+    const formattedCode = prettier.format(code, {
+      // Prettier options (optional). You can customize these based on your preferences.
+      // For example, you can set the tab width, use single or double quotes, etc.
+      // For a full list of options, refer to the Prettier documentation: https://prettier.io/docs/en/options.html
+      semi: false,
+      singleQuote: true,
+      tabWidth: 2,
+      parser: "babel", // Specify the parser (e.g., 'babel', 'typescript', 'json')
+    });
+
+    return formattedCode;
+  } catch (error) {
+    console.error("Error formatting code:", error.message);
+    return code; // Return the original code in case of an error
+  }
 }
 
 async function test() {

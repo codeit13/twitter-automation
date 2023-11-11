@@ -11,6 +11,7 @@ const tweetRandomTechTip = async () => {
   try {
     const { content, code } = await generateTweetContent();
     const image = await generateImageFromCode(code);
+
     await tweetWithMedia(content, image);
 
     // await test();
