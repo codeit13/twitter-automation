@@ -1,4 +1,6 @@
 node_modules
 .env
 package-lock.json
-assets/*
+assets/*/*.png
+assets/*/*.mp3
+assets/*/*.mp4

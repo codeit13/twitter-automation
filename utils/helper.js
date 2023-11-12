@@ -5,14 +5,22 @@ const crypto = require("crypto");
 const FormData = require("form-data");
 const syncFs = require("fs");
 const fs = require("fs").promises;
+const path = require("path");
 const axios = require("axios");
 const OpenAI = require("openai");
 // const js_beautify = require("js-beautify");
 const prettier = require("prettier");
+const ffmpeg = require("fluent-ffmpeg");
+const ffprobe = require("ffprobe");
+const ffprobeStatic = require("ffprobe-static");
+
+ffmpeg.setFfmpegPath(require("@ffmpeg-installer/ffmpeg").path);
+ffmpeg.setFfprobePath(require("@ffprobe-installer/ffprobe").path);
 
 const config = require("./config.json");
 
 const { generateImage } = require("./generateImage");
+const { timeStamp } = require("console");
 
 // Your keys and tokens
 const CONSUMER_KEY = process.env.CONSUMER_KEY;
@@ -23,6 +31,9 @@ const BEARER_TOKEN = process.env.BEARER_TOKEN;
 const OAUTH_2_CLIENT_ID = process.env.OAUTH_2_CLIENT_ID;
 const OAUTH_2_CLIENT_SECRET = process.env.OAUTH_2_CLIENT_SECRET;
 
+// The user token
+const token = { key: ACCESS_TOKEN, secret: ACCESS_SECRET };
+
 // Initialize OAuth1.0a with your app's keys and hashing method
 const oauth = OAuth({
   consumer: { key: CONSUMER_KEY, secret: CONSUMER_SECRET },
@@ -32,126 +43,333 @@ const oauth = OAuth({
   },
 });
 
-// The user token
-const token = { key: ACCESS_TOKEN, secret: ACCESS_SECRET };
+async function uploadMedia(mediaPath) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Prepare request data
+      const formData = new FormData();
+      formData.append("media", syncFs.createReadStream(mediaPath));
+      formData.append("media_category", "tweet_image");
 
-function uploadMedia(mediaPath) {
-  return new Promise((resolve, reject) => {
-    // Prepare request data
-    const formData = new FormData();
-    formData.append("media", syncFs.createReadStream(mediaPath));
-    formData.append("media_category", "tweet_image");
+      // Prepare the OAuth Authorization header
+      const request_data = {
+        url: "https://upload.twitter.com/1.1/media/upload.json",
+        method: "POST",
+      };
 
-    // Prepare the OAuth Authorization header
-    const request_data = {
-      url: "https://upload.twitter.com/1.1/media/upload.json",
-      method: "POST",
-    };
+      const headers = oauth.toHeader(oauth.authorize(request_data, token));
+      Object.assign(headers, formData.getHeaders()); // This will add the Content-Type with boundary
 
-    const headers = oauth.toHeader(oauth.authorize(request_data, token));
-    Object.assign(headers, formData.getHeaders()); // This will add the Content-Type with boundary
-
-    // Make the request
-    axios
-      .post(request_data.url, formData, { headers })
-      .then((response) => {
-        // Resolve with media_id_string from the response
-        resolve(response.data.media_id_string);
-      })
-      .catch((error) => {
-        // Reject with error
-        reject(error.response ? error.response.data : error.message);
+      // Make the request
+      const { data } = await axios.post(request_data.url, formData, {
+        headers,
       });
+
+      // Resolve with media_id_string from the response
+      resolve(data.media_id_string);
+    } catch (error) {
+      reject(error.response ? error.response.data : error.message);
+    }
   });
 }
 
-async function tweetWithMedia(text, mediaPath) {
-  try {
-    // Step 1: Upload the media and get the media ID
-    const mediaId = await uploadMedia(mediaPath);
+async function uploadVideo(videoPath, additional_owners = null) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // INIT
+      const mediablob = syncFs.readFileSync(videoPath);
 
-    // Step 2: Create a tweet with the text and media ID
-    const tweetData = {
-      text,
-      media: {
-        media_ids: [mediaId],
-      },
-    };
+      const contentType = "video/mp4";
 
-    const request_data = {
-      url: "https://api.twitter.com/2/tweets",
-      method: "POST",
-    };
-    const headers = oauth.toHeader(oauth.authorize(request_data, token));
+      const size = mediablob.length;
 
-    headers["Content-Type"] = "application/json";
+      const url = "https://upload.twitter.com/1.1/media/upload.json";
 
-    const { data } = await axios.post(
-      "https://api.twitter.com/2/tweets",
-      tweetData,
-      {
+      const initUrl = `${url}?command=INIT&total_bytes=${size}&media_type=${encodeURIComponent(
+        contentType
+      )}&media_category=tweet_video${
+        additional_owners ? `&additional_owners=${additional_owners}` : ""
+      }`;
+
+      let request_data = { url: initUrl, method: "POST" };
+      let headers = oauth.toHeader(oauth.authorize(request_data, token));
+
+      const { data: initResponse } = await axios(initUrl, {
+        method: "POST",
         headers,
-      }
-    );
+      });
 
-    console.log(`Tweet with id: ${data.data.id} posted successfully`);
-  } catch (error) {
-    console.log("Error:", error);
-  }
+      const media_id_string = initResponse.media_id_string;
+
+      // APPEND
+      const segment_index = 0;
+
+      const formData = new FormData();
+      formData.append("media", mediablob);
+
+      const appendUrl = `${url}?command=APPEND&media_id=${media_id_string}&segment_index=${segment_index}`;
+
+      request_data = { url: appendUrl, method: "POST" };
+      headers = oauth.toHeader(oauth.authorize(request_data, token));
+      Object.assign(headers, formData.getHeaders()); // This will add the Content-Type with boundary
+
+      const { data: appendResponse } = await axios(appendUrl, {
+        method: "POST",
+        headers,
+        data: formData,
+      });
+
+      // FINALIZE
+      const finalizeUrl = `${url}?command=FINALIZE&media_id=${media_id_string}`;
+      request_data = { url: finalizeUrl, method: "POST" };
+      headers = oauth.toHeader(oauth.authorize(request_data, token));
+      Object.assign(headers, formData.getHeaders()); // This will add the Content-Type with boundary
+
+      await axios(finalizeUrl, {
+        method: "POST",
+        headers,
+      });
+
+      // Polling function to check the status of finalization
+      const pollFinalizeStatus = async () => {
+        const finalizeCheckUrl = `${url}?command=STATUS&media_id=${media_id_string}`;
+        request_data = { url: finalizeCheckUrl, method: "GET" };
+        headers = oauth.toHeader(oauth.authorize(request_data, token));
+
+        const { data: statusResponse } = await axios(finalizeCheckUrl, {
+          method: "GET",
+          headers,
+        });
+
+        if (
+          statusResponse.processing_info &&
+          statusResponse.processing_info.state === "succeeded"
+        ) {
+          // Finalization successful
+          resolve(statusResponse.media_id_string);
+        } else if (
+          statusResponse.processing_info &&
+          statusResponse.processing_info.state === "failed"
+        ) {
+          // Finalization failed
+          reject({
+            err: "Finalization Failed",
+          });
+        } else {
+          // Continue polling
+          setTimeout(pollFinalizeStatus, 1000); // Poll every 1 second (adjust as needed)
+        }
+      };
+
+      pollFinalizeStatus();
+    } catch (error) {
+      // Reject with error
+      reject(error);
+    }
+  });
+}
+
+async function tweetWithMedia(text, mediaPath, type = "image") {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Step 1: Upload the media and get the media ID
+      let mediaId;
+      if (type == "image") {
+        mediaId = await uploadMedia(mediaPath);
+      } else if (type == "video") {
+        mediaId = await uploadVideo(mediaPath);
+      } else {
+        console.log("Invalid media type");
+        return;
+      }
+
+      // Step 2: Create a tweet with the text and media ID
+      const tweetData = {
+        text,
+        media: {
+          media_ids: [mediaId],
+        },
+      };
+
+      const request_data = {
+        url: "https://api.twitter.com/2/tweets",
+        method: "POST",
+      };
+      const headers = oauth.toHeader(oauth.authorize(request_data, token));
+
+      headers["Content-Type"] = "application/json";
+
+      const { data } = await axios.post(
+        "https://api.twitter.com/2/tweets",
+        tweetData,
+        {
+          headers,
+        }
+      );
+
+      config.count += 1;
+      await fs.writeFile(
+        "./utils/config.json",
+        JSON.stringify(config, null, 2)
+      );
+
+      resolve(`Tweet with id: ${data.data.id} posted successfully`);
+    } catch (error) {
+      reject("Error:", error.response.data || error);
+    }
+  });
 }
 
 const generateImageFromCode = async (code) => {
-  const imageData = await generateImage({
-    code: code,
-    language: "javascript",
-    theme: "slack-dark",
-    format: "png",
-    upscale: 4,
-    font: "hack",
-    border: { thickness: 40, radius: 7, colour: "#2E3440" },
-    showLineNumber: false,
-    imageFormat: "png",
+  return new Promise(async (resolve, reject) => {
+    try {
+      const imageData = await generateImage({
+        code: code,
+        language: "javascript",
+        theme: "slack-dark",
+        format: "png",
+        upscale: 4,
+        font: "hack",
+        border: { thickness: 40, radius: 7, colour: "#2E3440" },
+        showLineNumber: false,
+        imageFormat: "png",
+      });
+
+      const imageFile = path.resolve(`./assets/images/${Date.now()}.png`);
+
+      await fs.writeFile(imageFile, imageData.image);
+
+      resolve(imageFile);
+    } catch (error) {
+      reject(error);
+    }
   });
+};
 
-  const imagePath = `./assets/${Date.now()}.png`;
+const generateAudioFromText = async (audio_text) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
 
-  await fs.writeFile(imagePath, imageData.image);
+      const mp3 = await openai.audio.speech.create({
+        model: "tts-1",
+        voice: "echo",
+        input: audio_text,
+      });
 
-  return imagePath;
+      const buffer = Buffer.from(await mp3.arrayBuffer());
+
+      const speechFile = path.resolve(`./assets/audios/${Date.now()}.mp3`);
+
+      await fs.writeFile(speechFile, buffer);
+
+      resolve(speechFile);
+    } catch (e) {
+      reject(e);
+    }
+  });
+};
+
+const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const videoFile = path.resolve(`./assets/videos/${Date.now()}.mp4`);
+
+      // Probe the audio file to get its duration
+      ffprobe(speechFile, { path: ffprobeStatic.path }, (err, info) => {
+        if (err) {
+          console.error("Error probing audio file:", err);
+          return;
+        }
+
+        const audioDuration = String(
+          parseFloat(info["streams"][0].duration) + 2.5
+        );
+
+        // Now use the obtained duration to set the image duration
+        const command = ffmpeg()
+          .input(imageFile)
+          .loop(audioDuration)
+          .input(speechFile)
+          .audioBitrate(128)
+          .videoBitrate(5000)
+          .inputFPS(30)
+          .videoCodec("libx264")
+          .size("1280x720") // Set video resolution
+          .aspect("16:9") // Set aspect ratio
+          .outputOptions([
+            "-profile:v high", // Set video profile
+            "-level 4.2", // Set video level
+            "-pix_fmt yuv420p", // Set pixel format
+            "-b:a 128k", // Set audio bitrate
+            "-c:a aac", // Set audio codec
+            "-strict -2", // Allow experimental codecs
+            "-r 30", // Set frame rate
+            "-y", // Overwrite output files without asking
+          ])
+          .audioFilters(`adelay=${1.5 * 1000}|${1.5 * 1000}`)
+          .output(videoFile)
+          .on("end", () => {
+            resolve(videoFile);
+          })
+          .on("error", (err) => {
+            console.error("Error:", err);
+            reject(err);
+          });
+
+        command.run();
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
 };
 
 const generateTweetContent = async () => {
-  const topic = config.topics[randomNumber(0, config.topics.length)];
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+  return new Promise(async (resolve, reject) => {
+    try {
+      config.count += 1;
+
+      const topic = config.topics[randomNumber(0, config.topics.length)];
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      const tipLength = randomNumber(0, 5) >= 3 ? "7-8" : "2-3";
+
+      const chatCompletion = await openai.chat.completions.create({
+        messages: [
+          {
+            role: "user",
+            // content: `Generate a ${tipLength} line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip and a short text (will be further fed into TTS) which will explain the tip very clearly. Return the response strictly in json format: { code: '', content: '', audio_text: '' }. Make sure it is easy to grasp, and technically correct, and also add some introductory line at the beginning of the audio_text (something like: 'Welcome to Tech tips part ${config.count}').`
+            content: `Generate a concise ${tipLength} line random tech tip for ${topic}, focusing on a lesser-known but highly beneficial (life saviour tip) concept for a developer. Accompany the tip with a short, clear code snippet illustrating the concept. Additionally, provide a brief message (will be further fed into TTS) in the 'audio_text' field, which should explain the tip on why and how it is useful, ensure the opening statements should feel very positive and welcoming to the user (This is for the tweet for a series called as Tech Tips on Twitter on my channel). Return the response strictly in JSON format: { "code": "", "content": "", "audio_text": "" }. Ensure the technical accuracy and ease of understanding of the generated content.`,
+          },
+        ],
+        model: "gpt-3.5-turbo-1106",
+        response_format: { type: "json_object" },
+      });
+
+      const response = JSON.parse(chatCompletion.choices[0].message.content);
+
+      // await fs.writeFile("./utils/config.json", JSON.stringify(config, null, 2));
+
+      response.content = `${bold(`Tech Tip #${config.count}`)}\n\n${bold(
+        topic
+      )}\n\n${response.content}`;
+
+      response.code = await formatCode(response.code);
+
+      resolve({
+        content: response.content,
+        code: response.code,
+        audio_text: response.audio_text,
+      });
+    } catch (error) {
+      reject(error);
+    }
   });
-
-  const tipLength = randomNumber(0, 5) >= 3 ? "6-7" : "2-3";
-
-  const chatCompletion = await openai.chat.completions.create({
-    messages: [
-      {
-        role: "user",
-        content: `Generate a ${tipLength} line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip. Return the response strictly in json format: { code: '', content: '' }. Make sure to beautify the code correctly, as prettier in vscode with proper indentations and include new lines wherever necessary. Also in code make sure every string after newline should not exceed max 35 chars limit.`,
-      },
-    ],
-    model: "gpt-3.5-turbo-1106",
-    response_format: { type: "json_object" },
-  });
-
-  const response = JSON.parse(chatCompletion.choices[0].message.content);
-
-  config.count += 1;
-
-  await fs.writeFile("./utils/config.json", JSON.stringify(config, null, 2));
-
-  response.content = `${bold(`Tech Tip #${config.count}`)}\n\n${bold(
-    topic
-  )}\n\n${response.content}`;
-
-  response.code = await formatCode(response.code);
-
-  return { content: response.content, code: response.code };
 };
 
 function randomNumber(min, max) {
@@ -229,6 +447,7 @@ function formatCode(code) {
       // For a full list of options, refer to the Prettier documentation: https://prettier.io/docs/en/options.html
       semi: false,
       singleQuote: true,
+      trailingComma: "none",
       tabWidth: 2,
       parser: "babel", // Specify the parser (e.g., 'babel', 'typescript', 'json')
     });
@@ -241,35 +460,81 @@ function formatCode(code) {
 }
 
 async function test() {
-  try {
-    let code = "console.log( 'Hello World!'     )     ;";
+  return new Promise((resolve, reject) => {
+    try {
+      const imageFile =
+        "/home/sumit/_Projects/twitter_automation/assets/images/1699809789151.png";
 
-    const options = { indent_size: 2, space_in_empty_paren: true };
+      const silentAudioFile =
+        "/home/sumit/_Projects/twitter_automation/assets/silent.mp3";
+      const speechFile =
+        "/home/sumit/_Projects/twitter_automation/assets/audios/1699809792803.mp3";
+      const videoFile =
+        "/home/sumit/_Projects/twitter_automation/assets/videos/1699809792803.mp4";
 
-    const dataObj = {
-      completed: false,
-      id: 1,
-      title: "delectus aut autem",
-      userId: 1,
-    };
+      const audioDuration = 16;
 
-    const dataJson = JSON.stringify(dataObj);
+      // Now use the obtained duration to set the image duration
+      const command = ffmpeg()
+        // .input(silentAudioFile)
+        // .input(speechFile)
+        // .input(imageFile)
+        // .inputFormat("mp3")
+        // .inputFormat("mp3")
+        // .inputFormat("image2")
+        // .complexFilter(complexFilter)
+        // .outputOptions("-c:v libx264")
+        // .outputOptions("-c:a aac")
 
-    const res = js_beautify(code, {
-      indent_size: 2,
-      space_in_empty_paren: true,
-    });
+        .input(imageFile)
+        .loop(audioDuration)
+        .input(speechFile)
+        .audioFilter(`adelay=${2}s`)
+        .audioBitrate(128)
+        .videoBitrate(5000)
+        .inputFPS(30)
+        .videoCodec("libx264")
+        .size("1280x720") // Set video resolution
+        .aspect("16:9") // Set aspect ratio
+        .outputOptions([
+          "-profile:v high", // Set video profile
+          "-level 4.2", // Set video level
+          "-pix_fmt yuv420p", // Set pixel format
+          "-b:a 128k", // Set audio bitrate
+          "-c:a aac", // Set audio codec
+          "-strict experimental",
+          "-r 30", // Set frame rate
+          "-y", // Overwrite output files without asking
+        ])
+        .audioFilters(`adelay=${2 * 1000}|${2 * 1000}`)
+        .output(videoFile)
+        .on("start", (commandLine) => {
+          console.log(`Spawned Ffmpeg with command: ${commandLine}`);
+        })
+        .on("end", () => {
+          console.log("Video Creation Finished");
+        })
+        .on("stderr", (stderrLine) => {
+          console.log("Stderr output:", stderrLine);
+        })
+        .on("error", (err) => {
+          console.log("Error:", err);
+        });
 
-    console.log("beautified code: ", res);
-  } catch (e) {
-    console.log("Error: ", e);
-  }
+      command.run();
+    } catch (e) {
+      reject("Test Catch: ", e);
+    }
+  });
 }
 
 module.exports = {
   uploadMedia,
   tweetWithMedia,
   generateImageFromCode,
+  generateAudioFromText,
+  generateVideoFromAudioAndImage,
   generateTweetContent,
+  uploadVideo,
   test,
 };

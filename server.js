@@ -1,31 +1,52 @@
 const {
   tweetWithMedia,
   generateImageFromCode,
+  generateAudioFromText,
+  generateVideoFromAudioAndImage,
   generateTweetContent,
   test,
 } = require("./utils/helper");
 
 const { CronJob } = require("cron");
 
-const tweetRandomTechTip = async () => {
-  try {
-    const { content, code } = await generateTweetContent();
-    const image = await generateImageFromCode(code);
+const maxRetries = 4;
 
-    await tweetWithMedia(content, image);
+const tweetRandomTechTip = async (retryCount = 0) => {
+  try {
+    const { content, code, audio_text } = await generateTweetContent();
+    const imageFile = await generateImageFromCode(code);
+
+    const speechFile = await generateAudioFromText(audio_text);
+
+    const videoFile = await generateVideoFromAudioAndImage(
+      speechFile,
+      imageFile
+    );
+
+    // await tweetWithMedia(content, videoFile, "video");
 
     // await test();
   } catch (e) {
     console.log("Error posting tweet: ", e);
+
+    if (retryCount < maxRetries) {
+      console.log(`Retrying (attempt ${retryCount + 1}/${maxRetries})...`);
+      // Retry with an incremented retry count
+      await tweetRandomTechTip(retryCount + 1);
+    } else {
+      console.log("Max retries reached. Unable to post tweet.");
+    }
   }
 };
 
-// tweetRandomTechTip();
+tweetRandomTechTip();
 
 new CronJob(
   "0 */5 * * *",
   async function () {
-    await tweetRandomTechTip();
+    try {
+      await tweetRandomTechTip();
+    } catch (e) {}
   },
   null,
   true,
