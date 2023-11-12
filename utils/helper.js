@@ -207,7 +207,6 @@ async function tweetWithMedia(text, mediaPath, type = "image") {
         }
       );
 
-      config.count += 1;
       await fs.writeFile(
         "./utils/config.json",
         JSON.stringify(config, null, 2)
@@ -215,7 +214,7 @@ async function tweetWithMedia(text, mediaPath, type = "image") {
 
       resolve(`Tweet with id: ${data.data.id} posted successfully`);
     } catch (error) {
-      reject("Error:", error.response.data || error);
+      reject({ from: "tweetWithMedia Error", data: error.response || error });
     }
   });
 }
@@ -344,7 +343,7 @@ const generateTweetContent = async () => {
           {
             role: "user",
             // content: `Generate a ${tipLength} line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip and a short text (will be further fed into TTS) which will explain the tip very clearly. Return the response strictly in json format: { code: '', content: '', audio_text: '' }. Make sure it is easy to grasp, and technically correct, and also add some introductory line at the beginning of the audio_text (something like: 'Welcome to Tech tips part ${config.count}').`
-            content: `Generate a concise ${tipLength} line random tech tip for ${topic}, focusing on a lesser-known but highly beneficial (life saviour tip) concept for a developer. Accompany the tip with a short, clear code snippet illustrating the concept. Additionally, provide a brief message (will be further fed into TTS) in the 'audio_text' field, which should explain the tip on why and how it is useful, ensure the opening statements should feel very positive and welcoming to the user (This is for the tweet for a series called as Tech Tips on Twitter on my channel). Return the response strictly in JSON format: { "code": "", "content": "", "audio_text": "" }. Ensure the technical accuracy and ease of understanding of the generated content.`,
+            content: `Generate a concise ${tipLength} line random tech tip for ${topic}, focusing on a lesser-known but highly beneficial (life saviour tip) concept for a developer. Accompany the tip with a short code snippet illustrating the tip clearly. Additionally, provide a brief message (will be further fed into TTS and coverted to audio) in the 'audio_text' field, which should explain the tip on why and how it is useful, ensure the opening statements should feel very positive and welcoming to the user (not robotic, or not human made) (This is for the tweet for a series called as Tech Tips on Twitter on my channel). Return the response strictly in JSON format: { "code": "", "content": "", "audio_text": "" }. Ensure the technical accuracy and ease of understanding of the generated content.`,
           },
         ],
         model: "gpt-3.5-turbo-1106",

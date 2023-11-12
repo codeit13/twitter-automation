@@ -23,7 +23,9 @@ const tweetRandomTechTip = async (retryCount = 0) => {
       imageFile
     );
 
-    // await tweetWithMedia(content, videoFile, "video");
+    const response = await tweetWithMedia(content, videoFile, "video");
+
+    console.log(response);
 
     // await test();
   } catch (e) {
