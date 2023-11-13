@@ -1,11 +1,18 @@
 {
   "topics": [
     "ReactJS",
-    "MongoDB",
     "ExpressJS",
     "NodeJS",
     "NextJS",
-    "Javascript"
+    "JavaScript",
+    "TypeScript",
+    "GraphQL",
+    "Redux",
+    "TailwindCSS",
+    "SCSS",
+    "REST API",
+    "User Authentication",
+    "WebSockets"
   ],
-  "count": 29
+  "count": 31
 }

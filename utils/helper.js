@@ -207,6 +207,7 @@ async function tweetWithMedia(text, mediaPath, type = "image") {
         }
       );
 
+      config.count += 1;
       await fs.writeFile(
         "./utils/config.json",
         JSON.stringify(config, null, 2)
@@ -214,7 +215,14 @@ async function tweetWithMedia(text, mediaPath, type = "image") {
 
       resolve(`Tweet with id: ${data.data.id} posted successfully`);
     } catch (error) {
-      reject({ from: "tweetWithMedia Error", data: error.response || error });
+      reject({
+        from: "tweetWithMedia Error",
+        data: JSON.stringify(
+          error.response ? error.response.data : error.response || error,
+          undefined,
+          4
+        ),
+      });
     }
   });
 }
@@ -292,12 +300,13 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
           .input(imageFile)
           .loop(audioDuration)
           .input(speechFile)
+          .audioFilter(`volume=2`)
           .audioBitrate(128)
           .videoBitrate(5000)
           .inputFPS(30)
           .videoCodec("libx264")
-          .size("1280x720") // Set video resolution
-          .aspect("16:9") // Set aspect ratio
+          .size("720x1280") // Set video resolution
+          .aspect("9:16") // Set aspect ratio
           .outputOptions([
             "-profile:v high", // Set video profile
             "-level 4.2", // Set video level
@@ -308,7 +317,7 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
             "-r 30", // Set frame rate
             "-y", // Overwrite output files without asking
           ])
-          .audioFilters(`adelay=${1.5 * 1000}|${1.5 * 1000}`)
+          .audioFilters(`adelay=${1.2 * 1000}|${1.2 * 1000}`)
           .output(videoFile)
           .on("end", () => {
             resolve(videoFile);
@@ -329,36 +338,44 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
 const generateTweetContent = async () => {
   return new Promise(async (resolve, reject) => {
     try {
-      config.count += 1;
-
       const topic = config.topics[randomNumber(0, config.topics.length)];
+
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
 
-      const tipLength = randomNumber(0, 5) >= 3 ? "7-8" : "2-3";
+      // const tipLength = randomNumber(0, 5) >= 3 ? "7-8" : "2-3";
+      const tipLength = "2-3";
 
       const chatCompletion = await openai.chat.completions.create({
         messages: [
           {
             role: "user",
-            // content: `Generate a ${tipLength} line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip and a short text (will be further fed into TTS) which will explain the tip very clearly. Return the response strictly in json format: { code: '', content: '', audio_text: '' }. Make sure it is easy to grasp, and technically correct, and also add some introductory line at the beginning of the audio_text (something like: 'Welcome to Tech tips part ${config.count}').`
-            content: `Generate a concise ${tipLength} line random tech tip for ${topic}, focusing on a lesser-known but highly beneficial (life saviour tip) concept for a developer. Accompany the tip with a short code snippet illustrating the tip clearly. Additionally, provide a brief message (will be further fed into TTS and coverted to audio) in the 'audio_text' field, which should explain the tip on why and how it is useful, ensure the opening statements should feel very positive and welcoming to the user (not robotic, or not human made) (This is for the tweet for a series called as Tech Tips on Twitter on my channel). Return the response strictly in JSON format: { "code": "", "content": "", "audio_text": "" }. Ensure the technical accuracy and ease of understanding of the generated content.`,
+            content:
+              "You are a helpful assistant who knows about a 1000000 concepts in wide variety of topics in Tech (Coding Development) including ReactJS, MongoDB, ExpressJS, NodeJS, NextJS, Javascript.",
+          },
+          {
+            role: "user",
+            // content: `Generate a ${tipLength} line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip and a short text (will be further fed into TTS) which will explain the tip very clearly. Return the response strictly in json format: { code: '', content: '', audio_text: '' }. Make sure it is easy to grasp, and technically correct, and also add some introductory line at the beginning of the audio_text (something like: 'Welcome to Tech tips part ${config.count + 1}').`
+            // content: `Generate a concise ${tipLength} line random tech tip for ${topic}, focusing on a lesser-known but highly beneficial (life saviour tip) concept for a developer. Accompany the tip with a short code snippet illustrating the tip clearly. Additionally, provide a brief message (will be further fed into TTS and coverted to audio) in the 'audio_text' field, which should explain the tip on why and how it is useful, ensure the opening statements should feel very positive and welcoming to the user (not robotic, or not human made) (This is for the tweet for a series called as Tech Tips on Twitter on my channel). Return the response strictly in JSON format: { "code": "", "content": "", "audio_text": "" }. Ensure the technical accuracy and ease of understanding of the generated content.`,
+            content: `Random seed: ${Date.now()}. Generate a concise, lesser-known yet impactful tech tip about ${topic}. The tip should be explained in ${tipLength} lines (content: 200 chars max) with a supporting a short JS code snippet (code) illustrating the tip clearly. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think s=you should use from the prompt.)`,
           },
         ],
         model: "gpt-3.5-turbo-1106",
         response_format: { type: "json_object" },
+        seed: Date.now(),
+        temperature: 1.4,
       });
 
       const response = JSON.parse(chatCompletion.choices[0].message.content);
 
       // await fs.writeFile("./utils/config.json", JSON.stringify(config, null, 2));
 
-      response.content = `${bold(`Tech Tip #${config.count}`)}\n\n${bold(
+      response.content = `${bold(`Tech Tip #${config.count + 1}`)}\n\n${bold(
         topic
       )}\n\n${response.content}`;
 
-      response.code = await formatCode(response.code);
+      response.code = await formatCode(response.code, topic);
 
       resolve({
         content: response.content,
@@ -438,8 +455,14 @@ function bold(inputString) {
   return boldString;
 }
 
-function formatCode(code) {
+function formatCode(code, topic) {
   try {
+    let parser = "babel-ts";
+    if (topic.toUpperCase().includes("SCSS")) {
+      parser = "scss";
+    } else if (topic.toUpperCase().includes("CSS")) {
+      parser = "css";
+    }
     const formattedCode = prettier.format(code, {
       // Prettier options (optional). You can customize these based on your preferences.
       // For example, you can set the tab width, use single or double quotes, etc.
@@ -448,7 +471,7 @@ function formatCode(code) {
       singleQuote: true,
       trailingComma: "none",
       tabWidth: 2,
-      parser: "babel", // Specify the parser (e.g., 'babel', 'typescript', 'json')
+      parser: parser, // Specify the parser (e.g., 'babel', 'typescript', 'json')
     });
 
     return formattedCode;
