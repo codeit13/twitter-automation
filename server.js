@@ -24,12 +24,17 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     );
     const response = await tweetWithMedia(content, videoFile, "video");
     console.log(response);
-
     //
     //
     // *********************************************** TESTING ***********************************************
     //
     // await test();
+    // const response = await tweetWithMedia(
+    //   "content",
+    //   "/home/sumit/_Projects/twitter_automation/assets/videos/new.mp4",
+    //   "video"
+    // );
+    // console.log(response);
     // const response = await uploadToYoutube({
     //   title: "This is from NodeJS",
     //   description:

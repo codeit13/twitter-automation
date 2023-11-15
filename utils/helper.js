@@ -148,7 +148,9 @@ async function uploadVideo(videoPath, additional_owners = null) {
           statusResponse.processing_info.state === "succeeded"
         ) {
           // Finalization successful
-          resolve(statusResponse.media_id_string);
+          deleteFile(videoPath).then(() => {
+            resolve(statusResponse.media_id_string);
+          });
         } else if (
           statusResponse.processing_info &&
           statusResponse.processing_info.state === "failed"
@@ -317,27 +319,30 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
           .input(imageFile)
           .loop(audioDuration)
           .input(speechFile)
-          .audioFilter(`volume=2`)
-          .audioBitrate(128)
-          .videoBitrate(5000)
           .inputFPS(30)
+          .videoBitrate(32)
+          .audioCodec("aac")
           .videoCodec("libx264")
-          .size("720x1280") // Set video resolution
-          .aspect("9:16") // Set aspect ratio
+          .aspectRatio("1:1")
           .outputOptions([
-            "-profile:v high", // Set video profile
-            "-level 4.2", // Set video level
-            "-pix_fmt yuv420p", // Set pixel format
-            "-b:a 128k", // Set audio bitrate
-            "-c:a aac", // Set audio codec
+            "-profile:v main", // Set video profile
+            "-level 3.1", // Set video level
             "-strict -2", // Allow experimental codecs
-            "-r 30", // Set frame rate
-            "-y", // Overwrite output files without asking
+            "-g 30", // Set GOP size to 30 frames (adjust as needed)
+            "-y", // Overwrite output files without asking,
+            "-b:v 2048K", // Adjust based on Twitter's recommendations
+            "-b:a 32K", // Adjust based on Twitter's recommendations,
+            "-pix_fmt yuv420p",
           ])
-          .audioFilters(`adelay=${1.2 * 1000}|${1.2 * 1000}`)
+          .keepDAR()
+          .audioFilters("volume=2", `adelay=${1.2 * 1000}|${1.2 * 1000}`)
           .output(videoFile)
           .on("end", () => {
-            resolve(videoFile);
+            deleteFile(imageFile).then(() => {
+              deleteFile(speechFile).then(() => {
+                resolve(videoFile);
+              });
+            });
           })
           .on("error", (err) => {
             console.error("Error:", err);
@@ -355,7 +360,7 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
 const generateTweetContent = async () => {
   return new Promise(async (resolve, reject) => {
     try {
-      const topic = config.topics[randomNumber(0, config.topics.length + 1)];
+      const topic = config.topics[randomNumber(0, config.topics.length)];
 
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
@@ -472,6 +477,14 @@ function bold(inputString) {
   return boldString;
 }
 
+async function deleteFile(filePath) {
+  try {
+    await fs.unlink(filePath);
+  } catch (err) {
+    console.log("Error deleting file:", err);
+  }
+}
+
 function formatCode(code, topic) {
   try {
     let parser = "babel-ts";
@@ -502,56 +515,43 @@ async function test() {
   return new Promise((resolve, reject) => {
     try {
       const imageFile =
-        "/home/sumit/_Projects/twitter_automation/assets/images/1699809789151.png";
-
-      const silentAudioFile =
-        "/home/sumit/_Projects/twitter_automation/assets/silent.mp3";
+        "/home/sumit/_Projects/twitter_automation/assets/images/1700075208588.png";
       const speechFile =
-        "/home/sumit/_Projects/twitter_automation/assets/audios/1699809792803.mp3";
+        "/home/sumit/_Projects/twitter_automation/assets/audios/1700075212475.mp3";
       const videoFile =
-        "/home/sumit/_Projects/twitter_automation/assets/videos/1699809792803.mp4";
+        "/home/sumit/_Projects/twitter_automation/assets/videos/new.mp4";
 
       const audioDuration = 16;
 
       // Now use the obtained duration to set the image duration
       const command = ffmpeg()
-        // .input(silentAudioFile)
-        // .input(speechFile)
-        // .input(imageFile)
-        // .inputFormat("mp3")
-        // .inputFormat("mp3")
-        // .inputFormat("image2")
-        // .complexFilter(complexFilter)
-        // .outputOptions("-c:v libx264")
-        // .outputOptions("-c:a aac")
-
         .input(imageFile)
         .loop(audioDuration)
         .input(speechFile)
-        .audioFilter(`adelay=${2}s`)
-        .audioBitrate(128)
-        .videoBitrate(5000)
         .inputFPS(30)
+        .videoBitrate(32)
+        .audioCodec("aac")
         .videoCodec("libx264")
-        .size("1280x720") // Set video resolution
-        .aspect("16:9") // Set aspect ratio
+        .aspectRatio("1:1")
         .outputOptions([
-          "-profile:v high", // Set video profile
-          "-level 4.2", // Set video level
-          "-pix_fmt yuv420p", // Set pixel format
-          "-b:a 128k", // Set audio bitrate
-          "-c:a aac", // Set audio codec
-          "-strict experimental",
-          "-r 30", // Set frame rate
-          "-y", // Overwrite output files without asking
+          "-profile:v main", // Set video profile
+          "-level 3.1", // Set video level
+          "-strict -2", // Allow experimental codecs
+          "-g 30", // Set GOP size to 30 frames (adjust as needed)
+          "-y", // Overwrite output files without asking,
+          "-b:v 2048K", // Adjust based on Twitter's recommendations
+          "-b:a 32K", // Adjust based on Twitter's recommendations,
+          "-pix_fmt yuv420p",
         ])
-        .audioFilters(`adelay=${2 * 1000}|${2 * 1000}`)
+        .keepDAR()
+        .audioFilters("volume=2", `adelay=${1.2 * 1000}|${1.2 * 1000}`)
         .output(videoFile)
         .on("start", (commandLine) => {
           console.log(`Spawned Ffmpeg with command: ${commandLine}`);
         })
         .on("end", () => {
           console.log("Video Creation Finished");
+          resolve();
         })
         .on("stderr", (stderrLine) => {
           console.log("Stderr output:", stderrLine);
