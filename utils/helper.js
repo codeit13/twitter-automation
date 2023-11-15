@@ -355,7 +355,7 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
 const generateTweetContent = async () => {
   return new Promise(async (resolve, reject) => {
     try {
-      const topic = config.topics[randomNumber(0, config.topics.length)];
+      const topic = config.topics[randomNumber(0, config.topics.length + 1)];
 
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
