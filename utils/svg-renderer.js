@@ -27,9 +27,9 @@ class SvgRenderer {
     };
 
     this.BUTTON_COLOUR = {
-      red: "#FF605C",
-      yellow: "#FFBD44",
-      green: "#00CA4E",
+      red: "#ffffff33",
+      yellow: "#ffffff33",
+      green: "#ffffff33",
     };
   }
 
@@ -127,9 +127,9 @@ class SvgRenderer {
     svg += `<rect id="bg" fill="${this._background}" width="${backgroundWidth}" height="${backgroundHeight}" rx="${this._radius}"></rect>`;
     svg += '<g id="titlebar">';
     svg += `<rect width="${backgroundWidth}" height="${titlebarHeight}" fill="${this._background}" rx="${this._radius}"/>`;
-    svg += `<rect x="13" y="9" width="14" height="14" rx="8" fill="${this.BUTTON_COLOUR.red}"/>`;
-    svg += `<rect x="35" y="9" width="14" height="14" rx="8" fill="${this.BUTTON_COLOUR.yellow}"/>`;
-    svg += `<rect x="57" y="9" width="14" height="14" rx="8" fill="${this.BUTTON_COLOUR.green}"/>`;
+    svg += `<rect x="15" y="12" width="10" height="10" rx="8" fill="${this.BUTTON_COLOUR.red}"/>`;
+    svg += `<rect x="37" y="12" width="10" height="10" rx="8" fill="${this.BUTTON_COLOUR.yellow}"/>`;
+    svg += `<rect x="59" y="12" width="10" height="10" rx="8" fill="${this.BUTTON_COLOUR.green}"/>`;
     svg += "</g>";
     svg += `<g id="tokens" transform="translate(${lineNumberWidth}, ${titlebarHeight})">`;
 

@@ -20,7 +20,9 @@ ffmpeg.setFfprobePath(require("@ffprobe-installer/ffprobe").path);
 const config = require("./config.json");
 
 const { generateImage } = require("./generateImage");
-const { timeStamp } = require("console");
+
+const { uploadToYoutube } = require("./youtube-upload");
+const { getImagesFromLexica } = require("./lexica");
 
 // Your keys and tokens
 const CONSUMER_KEY = process.env.CONSUMER_KEY;
@@ -228,16 +230,31 @@ async function tweetWithMedia(text, mediaPath, type = "image") {
 }
 
 const generateImageFromCode = async (code) => {
+  const colors = [
+    {
+      borderColor: "#2E3440",
+      theme: "slack-dark",
+      windowBackgroundColor: null,
+    },
+    {
+      borderColor: "#3e302c",
+      theme: "vitesse-dark",
+      windowBackgroundColor: "#141414",
+    },
+  ];
+
+  const randomTheme = colors[randomNumber(0, 2)];
   return new Promise(async (resolve, reject) => {
     try {
       const imageData = await generateImage({
         code: code,
         language: "javascript",
-        theme: "slack-dark",
+        theme: randomTheme.theme,
         format: "png",
         upscale: 4,
         font: "hack",
-        border: { thickness: 40, radius: 7, colour: "#2E3440" },
+        border: { thickness: 40, radius: 7, colour: randomTheme.borderColor },
+        windowBackgroundColor: randomTheme.windowBackgroundColor,
         showLineNumber: false,
         imageFormat: "png",
       });
@@ -358,7 +375,7 @@ const generateTweetContent = async () => {
             role: "user",
             // content: `Generate a ${tipLength} line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip and a short text (will be further fed into TTS) which will explain the tip very clearly. Return the response strictly in json format: { code: '', content: '', audio_text: '' }. Make sure it is easy to grasp, and technically correct, and also add some introductory line at the beginning of the audio_text (something like: 'Welcome to Tech tips part ${config.count + 1}').`
             // content: `Generate a concise ${tipLength} line random tech tip for ${topic}, focusing on a lesser-known but highly beneficial (life saviour tip) concept for a developer. Accompany the tip with a short code snippet illustrating the tip clearly. Additionally, provide a brief message (will be further fed into TTS and coverted to audio) in the 'audio_text' field, which should explain the tip on why and how it is useful, ensure the opening statements should feel very positive and welcoming to the user (not robotic, or not human made) (This is for the tweet for a series called as Tech Tips on Twitter on my channel). Return the response strictly in JSON format: { "code": "", "content": "", "audio_text": "" }. Ensure the technical accuracy and ease of understanding of the generated content.`,
-            content: `Random seed: ${Date.now()}. Generate a concise, lesser-known yet impactful tech tip about ${topic}. The tip should be explained in ${tipLength} lines (content: 200 chars max) with a supporting a short JS code snippet (code) illustrating the tip clearly. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think s=you should use from the prompt.)`,
+            content: `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about ${topic}. The tip should be explained in ${tipLength} lines (content: 200 chars max) with a supporting short JS code snippet (code) on how the tip can be implemented. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think s=you should use from the prompt.)`,
           },
         ],
         model: "gpt-3.5-turbo-1106",
@@ -558,5 +575,7 @@ module.exports = {
   generateVideoFromAudioAndImage,
   generateTweetContent,
   uploadVideo,
+  uploadToYoutube,
+  getImagesFromLexica,
   test,
 };

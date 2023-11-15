@@ -59,6 +59,7 @@ async function generateImage({
   theme,
   font,
   showLineNumber,
+  windowBackgroundColor,
 }) {
   const highlighter = await shiki.getHighlighter({ theme });
   const fontConfig = FONT_MAPPING[font];
@@ -67,7 +68,7 @@ async function generateImage({
     ...fontConfig,
     showLineNumber,
     lineNumberForeground: highlighter.getForegroundColor(),
-    background: highlighter.getBackgroundColor(),
+    background: windowBackgroundColor || highlighter.getBackgroundColor(),
     radius: border.radius,
   });
 

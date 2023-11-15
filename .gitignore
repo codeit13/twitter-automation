@@ -4,3 +4,9 @@ package-lock.json
 assets/*/*.png
 assets/*/*.mp3
 assets/*/*.mp4
+.credentials/*
+
+!assets/images
+!assets/audios
+!assets/videos
+!.credentials
