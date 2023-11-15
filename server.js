@@ -22,8 +22,8 @@ const tweetRandomTechTip = async (retryCount = 0) => {
       speechFile,
       imageFile
     );
-    // const response = await tweetWithMedia(content, videoFile, "video");
-    // console.log(response);
+    const response = await tweetWithMedia(content, videoFile, "video");
+    console.log(response);
 
     //
     //
