@@ -16,38 +16,37 @@ const maxRetries = 6;
 
 const tweetRandomTechTip = async (retryCount = 0) => {
   try {
-    const tweetTypes = ["image", "video", "poll"];
+    const tweetTypes = ["image", "video", "poll", "thread"];
     const tweetType = tweetTypes[randomNumber(0, tweetTypes.length)];
 
-    const gptResponse = await generateTweetContent(tweetType);
+    const { content, code, audio_text, threads, options } =
+      await generateTweetContent(tweetType);
     let response;
 
-    if (tweetType == "image") {
-      const imageFile = await generateImageFromCode(gptResponse.code);
-      response = await tweetWithMedia(
-        gptResponse.content,
-        imageFile,
-        tweetType
-      );
-    } else if (tweetType == "video") {
-      const imageFile = await generateImageFromCode(gptResponse.code);
-      const speechFile = await generateAudioFromText(gptResponse.audio_text);
+    if (tweetType === "image") {
+      const imageFile = await generateImageFromCode(code);
+      response = await tweetWithMedia(content, imageFile, tweetType);
+    } else if (tweetType === "video") {
+      const imageFile = await generateImageFromCode(code);
+      const speechFile = await generateAudioFromText(audio_text);
       const videoFile = await generateVideoFromAudioAndImage(
         speechFile,
         imageFile
       );
-      response = await tweetWithMedia(
-        gptResponse.content,
-        videoFile,
-        tweetType
+      response = await tweetWithMedia(content, videoFile, tweetType);
+    } else if (tweetType === "poll") {
+      response = await tweetWithMedia(content, null, tweetType, options);
+    } else if (tweetType === "thread") {
+      await Promise.all(
+        threads.map(async (thread) => {
+          if (thread.code == null) {
+            thread.imageFile = null;
+          } else {
+            thread.imageFile = await generateImageFromCode(thread.code);
+          }
+        })
       );
-    } else if (tweetType == "poll") {
-      response = await tweetWithMedia(
-        gptResponse.content,
-        null,
-        tweetType,
-        gptResponse.options
-      );
+      response = await tweetWithMedia(null, null, tweetType, null, threads);
     }
 
     console.log(response);

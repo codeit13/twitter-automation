@@ -10,6 +10,7 @@ const axios = require("axios");
 const OpenAI = require("openai");
 // const js_beautify = require("js-beautify");
 const prettier = require("prettier");
+const flourite = require("flourite");
 const ffmpeg = require("fluent-ffmpeg");
 const ffprobe = require("ffprobe");
 const ffprobeStatic = require("ffprobe-static");
@@ -177,7 +178,8 @@ async function tweetWithMedia(
   text,
   mediaPath = null,
   type = "image",
-  options = null
+  options = null,
+  threads = null
 ) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -189,50 +191,95 @@ async function tweetWithMedia(
       } else if (type == "video") {
         mediaId = await uploadVideo(mediaPath);
       } else if (type == "poll") {
+      } else if (type == "thread") {
+        await Promise.all(
+          threads.map(async (thread) => {
+            if (thread.imageFile != null)
+              thread.mediaId = await uploadMedia(thread.imageFile);
+            else thread.mediaId = null;
+          })
+        );
       } else {
         console.log("Invalid media type");
         return;
       }
 
-      // Step 2: Create a tweet with the text and media ID
-      const tweetData = {
-        text,
-        ...(mediaId ? { media: { media_ids: [mediaId] } } : {}),
-        ...(options
-          ? {
-              poll: {
-                options,
-                duration_minutes: 4320,
-              },
+      if (type == "thread") {
+        let replyTweetId = null;
+        for (let thread of threads) {
+          const tweetData = {
+            text: thread.content,
+            ...(thread.mediaId
+              ? { media: { media_ids: [thread.mediaId] } }
+              : {}),
+            ...(replyTweetId
+              ? { reply: { in_reply_to_tweet_id: replyTweetId } }
+              : {}),
+          };
+
+          const request_data = {
+            url: "https://api.twitter.com/2/tweets",
+            method: "POST",
+          };
+          const headers = oauth.toHeader(oauth.authorize(request_data, token));
+
+          headers["Content-Type"] = "application/json";
+
+          const { data } = await axios.post(
+            "https://api.twitter.com/2/tweets",
+            tweetData,
+            {
+              headers,
             }
-          : {}),
-      };
+          );
 
-      const request_data = {
-        url: "https://api.twitter.com/2/tweets",
-        method: "POST",
-      };
-      const headers = oauth.toHeader(oauth.authorize(request_data, token));
-
-      headers["Content-Type"] = "application/json";
-
-      const { data } = await axios.post(
-        "https://api.twitter.com/2/tweets",
-        tweetData,
-        {
-          headers,
+          replyTweetId = data.data.id;
         }
-      );
+      } else {
+        const tweetData = {
+          text,
+          ...(mediaId ? { media: { media_ids: [mediaId] } } : {}),
+          ...(options
+            ? {
+                poll: {
+                  options,
+                  duration_minutes: 4320,
+                },
+              }
+            : {}),
+          ...(threads ? { reply: { media_ids: [mediaId] } } : {}),
+        };
 
-      if (type == "video") {
-        config.count += 1;
-        await fs.writeFile(
-          "./utils/config.json",
-          JSON.stringify(config, null, 2)
+        const request_data = {
+          url: "https://api.twitter.com/2/tweets",
+          method: "POST",
+        };
+        const headers = oauth.toHeader(oauth.authorize(request_data, token));
+
+        headers["Content-Type"] = "application/json";
+
+        const { data } = await axios.post(
+          "https://api.twitter.com/2/tweets",
+          tweetData,
+          {
+            headers,
+          }
         );
+
+        if (type == "video") {
+          config.count += 1;
+          await fs.writeFile(
+            "./utils/config.json",
+            JSON.stringify(config, null, 2)
+          );
+        }
       }
 
-      resolve(`Tweet with id: ${data.data.id} posted successfully`);
+      resolve(
+        `${
+          type[0].toUpperCase() + type.slice(1)
+        } tweet has been posted successfully`
+      );
     } catch (error) {
       reject({
         from: "tweetWithMedia Error",
@@ -387,10 +434,15 @@ const generateTweetContent = async (type) => {
         apiKey: process.env.OPENAI_API_KEY,
       });
 
-      let PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about ${topic}. The tip should be explained in 3-4 lines (content: 200 chars max) with a supporting short JS code snippet (code) on how the tip can be implemented. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think s=you should use from the prompt.)`;
-
-      if (type == "poll") {
+      let PROMPT = null;
+      if (type == "image") {
+        PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about ${topic}. The tip should be explained in 3-4 lines (content: 200 chars max) with a supporting short JS code snippet (code) on how the tip can be implemented. Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think you should use from the prompt.)`;
+      } else if (type == "video") {
+        PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about ${topic}. The tip should be explained in 3-4 lines (content: 200 chars max) with a supporting short JS code snippet (code) on how the tip can be implemented. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think you should use from the prompt.)`;
+      } else if (type == "poll") {
         PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet related to a ${topic}. Pose a question about the code's final output or implemented concept. Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters. Only one option should be correct, while the other two are incorrect`;
+      } else if (type == "thread") {
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (of 4-5 tweets) on a random small tech sub-topic of ${topic}. Initial Tweet should be introduction on what's inside this thread (create a hook for users in this tweet, and it should ignite curiosity). Subsequent tweets should be in context to the initail tweet, with a supporting JS code snippet. Include ending concluding tweet as well. Provide the threads in strict JSON format (array of objects): { "threads": [ { "content": "", code: "" } ] }. Each tweet's content shouldn't exceed more than 200 characters.`;
       }
 
       const chatCompletion = await openai.chat.completions.create({
@@ -426,7 +478,17 @@ const generateTweetContent = async (type) => {
         response.code = await formatCode(response.code, topic);
       } else if (type == "poll") {
         response.content += "\n\n" + (await formatCode(response.code, topic));
+      } else if (type == "thread") {
+        response.threads[0].content += "\n\n" + "Thread Below 🧵";
+
+        await Promise.all(
+          response.threads.map(async (thread) => {
+            if (thread.code == "") thread.code = null;
+            else thread.code = await formatCode(thread.code, topic);
+          })
+        );
       }
+      // console.log(response);
 
       resolve(response);
     } catch (error) {
@@ -510,30 +572,52 @@ async function deleteFile(filePath) {
   }
 }
 
-function formatCode(code, topic) {
-  try {
-    let parser = "babel-ts";
-    if (topic.toUpperCase().includes("SCSS")) {
-      parser = "scss";
-    } else if (topic.toUpperCase().includes("CSS")) {
-      parser = "css";
-    }
-    const formattedCode = prettier.format(code, {
-      // Prettier options (optional). You can customize these based on your preferences.
-      // For example, you can set the tab width, use single or double quotes, etc.
-      // For a full list of options, refer to the Prettier documentation: https://prettier.io/docs/en/options.html
-      semi: false,
-      singleQuote: true,
-      trailingComma: "none",
-      tabWidth: 2,
-      parser: parser, // Specify the parser (e.g., 'babel', 'typescript', 'json')
-    });
+async function formatCode(code, topic) {
+  return new Promise((resolve, reject) => {
+    try {
+      const language = flourite(code, {
+        shiki: true,
+        heuristic: true,
+      }).language;
 
-    return formattedCode;
-  } catch (error) {
-    console.error("Error formatting code:", error.message);
-    return code; // Return the original code in case of an error
-  }
+      let parser = "babel-ts";
+      if (topic.toUpperCase().includes("SCSS")) {
+        parser = "scss";
+      } else if (topic.toUpperCase().includes("CSS")) {
+        parser = "css";
+      } else if (topic.toUpperCase().includes("GRAPHQL")) {
+        parser = "graphql";
+      } else if (topic.toUpperCase().includes("TYPESCRIPT")) {
+        parser = "typescript";
+      } else if (topic.toUpperCase().includes("VUE")) {
+        parser = "vue";
+      } else if (topic.toUpperCase().includes("JSON")) {
+        parser = "json";
+      }
+
+      if (language == "html") {
+        parser = "html";
+      }
+
+      console.log("parser: ", parser, topic, language);
+
+      const formattedCode = prettier.format(code, {
+        // Prettier options (optional). You can customize these based on your preferences.
+        // For example, you can set the tab width, use single or double quotes, etc.
+        // For a full list of options, refer to the Prettier documentation: https://prettier.io/docs/en/options.html
+        semi: false,
+        singleQuote: true,
+        trailingComma: "none",
+        tabWidth: 2,
+        parser: parser, // Specify the parser (e.g., 'babel', 'typescript', 'json')
+      });
+
+      resolve(formattedCode);
+    } catch (error) {
+      // console.log("error in: ", parser, topic, code);
+      resolve(code);
+    }
+  });
 }
 
 async function test() {
