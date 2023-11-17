@@ -344,12 +344,11 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
           .audioFilters("volume=2", `adelay=${1.2 * 1000}|${1.2 * 1000}`)
           .output(videoFile)
           .on("end", () => {
-            resolve(videoFile);
-            // deleteFile(imageFile).then(() => {
-            //   deleteFile(speechFile).then(() => {
-            //     resolve(videoFile);
-            //   });
-            // });
+            deleteFile(imageFile).then(() => {
+              deleteFile(speechFile).then(() => {
+                resolve(videoFile);
+              });
+            });
           })
           .on("error", (err) => {
             console.error("Error:", err);
