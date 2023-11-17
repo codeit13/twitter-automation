@@ -236,16 +236,22 @@ const generateImageFromCode = async (code) => {
     {
       borderColor: "#2E3440",
       theme: "slack-dark",
-      windowBackgroundColor: null,
+    },
+    {
+      borderColor: "#292828",
+      theme: "vitesse-dark",
+    },
+    {
+      borderColor: "#7eb8c4",
+      theme: "github-dark",
     },
     {
       borderColor: "#3e302c",
       theme: "vitesse-dark",
-      windowBackgroundColor: "#141414",
     },
   ];
 
-  const randomTheme = colors[randomNumber(0, 2)];
+  const randomTheme = colors[randomNumber(0, colors.length)];
   return new Promise(async (resolve, reject) => {
     try {
       const imageData = await generateImage({
@@ -255,8 +261,7 @@ const generateImageFromCode = async (code) => {
         format: "png",
         upscale: 4,
         font: "hack",
-        border: { thickness: 40, radius: 7, colour: randomTheme.borderColor },
-        windowBackgroundColor: randomTheme.windowBackgroundColor,
+        border: { thickness: 25, radius: 7, colour: randomTheme.borderColor },
         showLineNumber: false,
         imageFormat: "png",
       });
@@ -335,14 +340,16 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
             "-pix_fmt yuv420p",
           ])
           .keepDAR()
+          .videoFilters("pad=ceil(iw/2)*2:ceil(ih/2)*2")
           .audioFilters("volume=2", `adelay=${1.2 * 1000}|${1.2 * 1000}`)
           .output(videoFile)
           .on("end", () => {
-            deleteFile(imageFile).then(() => {
-              deleteFile(speechFile).then(() => {
-                resolve(videoFile);
-              });
-            });
+            resolve(videoFile);
+            // deleteFile(imageFile).then(() => {
+            //   deleteFile(speechFile).then(() => {
+            //     resolve(videoFile);
+            //   });
+            // });
           })
           .on("error", (err) => {
             console.error("Error:", err);

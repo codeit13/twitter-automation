@@ -9,7 +9,7 @@ const {
   test,
 } = require("./utils/helper");
 
-const { CronJob } = require("cron");
+const { Cron } = require("croner");
 
 const maxRetries = 6;
 
@@ -67,14 +67,4 @@ const tweetRandomTechTip = async (retryCount = 0) => {
 
 tweetRandomTechTip();
 
-new CronJob(
-  "0 */5 * * *",
-  async function () {
-    try {
-      await tweetRandomTechTip();
-    } catch (e) {}
-  },
-  null,
-  true,
-  "Asia/Kolkata"
-);
+Cron("47 */5 * * *", tweetRandomTechTip);
