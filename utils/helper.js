@@ -414,7 +414,11 @@ const generateTweetContent = async (type) => {
       const response = JSON.parse(chatCompletion.choices[0].message.content);
 
       // await fs.writeFile("./utils/config.json", JSON.stringify(config, null, 2));
-      if (type == "image" || type == "video") {
+      if (type == "image") {
+        response.content = `${bold(topic)}\n\n${response.content}`;
+
+        response.code = await formatCode(response.code, topic);
+      } else if (type == "video") {
         response.content = `${bold(`Tech Tip #${config.count + 1}`)}\n\n${bold(
           topic
         )}\n\n${response.content}`;
