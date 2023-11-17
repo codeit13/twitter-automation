@@ -598,5 +598,6 @@ module.exports = {
   uploadVideo,
   uploadToYoutube,
   getImagesFromLexica,
+  randomNumber,
   test,
 };

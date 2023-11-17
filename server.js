@@ -6,6 +6,7 @@ const {
   generateTweetContent,
   uploadToYoutube,
   getImagesFromLexica,
+  randomNumber,
   test,
 } = require("./utils/helper");
 
