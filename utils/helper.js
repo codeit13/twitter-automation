@@ -224,11 +224,13 @@ async function tweetWithMedia(
         }
       );
 
-      config.count += 1;
-      await fs.writeFile(
-        "./utils/config.json",
-        JSON.stringify(config, null, 2)
-      );
+      if (type == "video") {
+        config.count += 1;
+        await fs.writeFile(
+          "./utils/config.json",
+          JSON.stringify(config, null, 2)
+        );
+      }
 
       resolve(`Tweet with id: ${data.data.id} posted successfully`);
     } catch (error) {
