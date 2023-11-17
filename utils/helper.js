@@ -173,15 +173,22 @@ async function uploadVideo(videoPath, additional_owners = null) {
   });
 }
 
-async function tweetWithMedia(text, mediaPath, type = "image") {
+async function tweetWithMedia(
+  text,
+  mediaPath = null,
+  type = "image",
+  options = null
+) {
   return new Promise(async (resolve, reject) => {
     try {
       // Step 1: Upload the media and get the media ID
-      let mediaId;
+      let mediaId = null;
+
       if (type == "image") {
         mediaId = await uploadMedia(mediaPath);
       } else if (type == "video") {
         mediaId = await uploadVideo(mediaPath);
+      } else if (type == "poll") {
       } else {
         console.log("Invalid media type");
         return;
@@ -190,9 +197,15 @@ async function tweetWithMedia(text, mediaPath, type = "image") {
       // Step 2: Create a tweet with the text and media ID
       const tweetData = {
         text,
-        media: {
-          media_ids: [mediaId],
-        },
+        ...(mediaId ? { media: { media_ids: [mediaId] } } : {}),
+        ...(options
+          ? {
+              poll: {
+                options,
+                duration_minutes: 4320,
+              },
+            }
+          : {}),
       };
 
       const request_data = {
@@ -363,7 +376,7 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
   });
 };
 
-const generateTweetContent = async () => {
+const generateTweetContent = async (type) => {
   return new Promise(async (resolve, reject) => {
     try {
       const topic = config.topics[randomNumber(0, config.topics.length)];
@@ -372,8 +385,11 @@ const generateTweetContent = async () => {
         apiKey: process.env.OPENAI_API_KEY,
       });
 
-      // const tipLength = randomNumber(0, 5) >= 3 ? "7-8" : "2-3";
-      const tipLength = "2-3";
+      let PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about ${topic}. The tip should be explained in 3-4 lines (content: 200 chars max) with a supporting short JS code snippet (code) on how the tip can be implemented. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think s=you should use from the prompt.)`;
+
+      if (type == "poll") {
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet related to a ${topic}. Pose a question about the code's final output or implemented concept. Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters. Only one option should be correct, while the other two are incorrect`;
+      }
 
       const chatCompletion = await openai.chat.completions.create({
         messages: [
@@ -384,9 +400,7 @@ const generateTweetContent = async () => {
           },
           {
             role: "user",
-            // content: `Generate a ${tipLength} line random tech-related, less known yet helpful life saviour tip on ${topic} and short code snippet demonstrating the tip and a short text (will be further fed into TTS) which will explain the tip very clearly. Return the response strictly in json format: { code: '', content: '', audio_text: '' }. Make sure it is easy to grasp, and technically correct, and also add some introductory line at the beginning of the audio_text (something like: 'Welcome to Tech tips part ${config.count + 1}').`
-            // content: `Generate a concise ${tipLength} line random tech tip for ${topic}, focusing on a lesser-known but highly beneficial (life saviour tip) concept for a developer. Accompany the tip with a short code snippet illustrating the tip clearly. Additionally, provide a brief message (will be further fed into TTS and coverted to audio) in the 'audio_text' field, which should explain the tip on why and how it is useful, ensure the opening statements should feel very positive and welcoming to the user (not robotic, or not human made) (This is for the tweet for a series called as Tech Tips on Twitter on my channel). Return the response strictly in JSON format: { "code": "", "content": "", "audio_text": "" }. Ensure the technical accuracy and ease of understanding of the generated content.`,
-            content: `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about ${topic}. The tip should be explained in ${tipLength} lines (content: 200 chars max) with a supporting short JS code snippet (code) on how the tip can be implemented. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think s=you should use from the prompt.)`,
+            content: PROMPT,
           },
         ],
         model: "gpt-3.5-turbo-1106",
@@ -398,18 +412,17 @@ const generateTweetContent = async () => {
       const response = JSON.parse(chatCompletion.choices[0].message.content);
 
       // await fs.writeFile("./utils/config.json", JSON.stringify(config, null, 2));
+      if (type == "image" || type == "video") {
+        response.content = `${bold(`Tech Tip #${config.count + 1}`)}\n\n${bold(
+          topic
+        )}\n\n${response.content}`;
 
-      response.content = `${bold(`Tech Tip #${config.count + 1}`)}\n\n${bold(
-        topic
-      )}\n\n${response.content}`;
+        response.code = await formatCode(response.code, topic);
+      } else if (type == "poll") {
+        response.content += "\n\n" + (await formatCode(response.code, topic));
+      }
 
-      response.code = await formatCode(response.code, topic);
-
-      resolve({
-        content: response.content,
-        code: response.code,
-        audio_text: response.audio_text,
-      });
+      resolve(response);
     } catch (error) {
       reject(error);
     }

@@ -15,14 +15,40 @@ const maxRetries = 6;
 
 const tweetRandomTechTip = async (retryCount = 0) => {
   try {
-    const { content, code, audio_text } = await generateTweetContent();
-    const imageFile = await generateImageFromCode(code);
-    const speechFile = await generateAudioFromText(audio_text);
-    const videoFile = await generateVideoFromAudioAndImage(
-      speechFile,
-      imageFile
-    );
-    const response = await tweetWithMedia(content, videoFile, "video");
+    const tweetTypes = ["image", "video", "poll"];
+    const tweetType = tweetTypes[randomNumber(0, tweetTypes.length)];
+
+    const gptResponse = await generateTweetContent(tweetType);
+    let response;
+
+    if (tweetType == "image") {
+      const imageFile = await generateImageFromCode(gptResponse.code);
+      response = await tweetWithMedia(
+        gptResponse.content,
+        imageFile,
+        tweetType
+      );
+    } else if (tweetType == "video") {
+      const imageFile = await generateImageFromCode(gptResponse.code);
+      const speechFile = await generateAudioFromText(gptResponse.audio_text);
+      const videoFile = await generateVideoFromAudioAndImage(
+        speechFile,
+        imageFile
+      );
+      response = await tweetWithMedia(
+        gptResponse.content,
+        videoFile,
+        tweetType
+      );
+    } else if (tweetType == "poll") {
+      response = await tweetWithMedia(
+        gptResponse.content,
+        null,
+        tweetType,
+        gptResponse.options
+      );
+    }
+
     console.log(response);
     //
     //
