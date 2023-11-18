@@ -1,6 +1,7 @@
 const {
   tweetWithMedia,
   generateImageFromCode,
+  generateImageFromText,
   generateAudioFromText,
   generateVideoFromAudioAndImage,
   generateTweetContent,
@@ -18,37 +19,38 @@ const tweetRandomTechTip = async (retryCount = 0) => {
   try {
     const tweetTypes = ["image", "video", "poll", "thread"];
     const tweetType = tweetTypes[randomNumber(0, tweetTypes.length)];
-
-    const { content, code, audio_text, threads, options } =
+    const { content, code, audio_text, image_text, threads, options } =
       await generateTweetContent(tweetType);
-    let response;
-
-    if (tweetType === "image") {
-      const imageFile = await generateImageFromCode(code);
-      response = await tweetWithMedia(content, imageFile, tweetType);
-    } else if (tweetType === "video") {
-      const imageFile = await generateImageFromCode(code);
-      const speechFile = await generateAudioFromText(audio_text);
-      const videoFile = await generateVideoFromAudioAndImage(
-        speechFile,
-        imageFile
-      );
-      response = await tweetWithMedia(content, videoFile, tweetType);
-    } else if (tweetType === "poll") {
-      response = await tweetWithMedia(content, null, tweetType, options);
-    } else if (tweetType === "thread") {
-      await Promise.all(
-        threads.map(async (thread) => {
-          if (thread.code == null) {
-            thread.imageFile = null;
-          } else {
-            thread.imageFile = await generateImageFromCode(thread.code);
-          }
-        })
-      );
-      response = await tweetWithMedia(null, null, tweetType, null, threads);
+    let imageFile, speechFile, videoFile, response;
+    switch (tweetType) {
+      case "image":
+        imageFile = await generateImageFromCode(code);
+        response = await tweetWithMedia(content, imageFile, tweetType);
+        break;
+      case "video":
+        imageFile = await generateImageFromCode(code);
+        speechFile = await generateAudioFromText(audio_text);
+        videoFile = await generateVideoFromAudioAndImage(speechFile, imageFile);
+        response = await tweetWithMedia(content, videoFile, tweetType);
+        break;
+      case "poll":
+        response = await tweetWithMedia(content, null, tweetType, options);
+        break;
+      case "thread":
+        await Promise.all(
+          threads.map(async (thread, i) => {
+            thread.imageFile = thread.code
+              ? await generateImageFromCode(thread.code)
+              : null;
+          })
+        );
+        threads[0].imageFile = await generateImageFromText(image_text);
+        response = await tweetWithMedia(null, null, tweetType, null, threads);
+        break;
+      default:
+        console.log("Invalid tweet type");
+        break;
     }
-
     console.log(response);
     //
     //
@@ -77,6 +79,9 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     // );
     // console.log(`https://image.lexica.art/md2_webp/${response.images[0].id}`);
     //
+    // await generateImageFromText(
+    //   "Understanding the key concepts of routing and data fetching on NextJS"
+    // );
     // *********************************************** TESTING ***********************************************
   } catch (e) {
     console.log("Error posting tweet: ", e);

@@ -219,6 +219,7 @@ async function tweetWithMedia(
             ...(replyTweetId
               ? { reply: { in_reply_to_tweet_id: replyTweetId } }
               : {}),
+            ...(thread.isLastTweet ? { quote_tweet_id: firstTweetId } : null),
           };
 
           const request_data = {
@@ -241,13 +242,13 @@ async function tweetWithMedia(
           }
           replyTweetId = data.data.id;
 
-          await new Promise((r) =>
-            setTimeout(r, parseInt(randomNumber(300, 500) * 1000))
-          );
+          // randomNumber(300, 500) * 1000
+
+          await new Promise((r) => setTimeout(r, parseInt(2500)));
         }
       } else {
         const tweetData = {
-          text,
+          text: `${text}\n\n`,
           ...(mediaId ? { media: { media_ids: [mediaId] } } : {}),
           ...(options
             ? {
@@ -299,6 +300,26 @@ async function tweetWithMedia(
   });
 }
 
+const generateImageFromText = async (text) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const imageData = await generateImage({
+        type: "text",
+        content: text,
+        imageFormat: "png",
+      });
+
+      const imageFile = path.resolve(`./assets/images/${Date.now()}.png`);
+
+      await fs.writeFile(imageFile, imageData.image);
+
+      resolve(imageFile);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 const generateImageFromCode = async (code) => {
   const colors = [
     {
@@ -323,7 +344,8 @@ const generateImageFromCode = async (code) => {
   return new Promise(async (resolve, reject) => {
     try {
       const imageData = await generateImage({
-        code: code,
+        type: "code",
+        content: code,
         language: "javascript",
         theme: randomTheme.theme,
         format: "png",
@@ -448,7 +470,7 @@ const generateTweetContent = async (type) => {
       } else if (type == "poll") {
         PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet related to a ${topic}. Make sure the code snippet is complete within itself and not just a part. Pose a question about the code snippet's final output or an implemented concept in it and provide 3 possible answers (out of which onky 1 is correct). Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters.`;
       } else if (type == "thread") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (of 5 tweets) on a random small tech sub-topic of ${topic}. First tweet should be the introduction on what's inside this thread (an attention grabbing hook for users). Subsequent tweets should be in context to the initail tweet, with a supporting short JS code snippet, and 2 relevant hashtags at the end. Conclude the whole thread in last tweet. Provide the threads in strict JSON format (array of objects): { "threads": [ { "content": "", code: "" } ] }. Each tweet's content shouldn't exceed more than 200 characters (excluding code). Use less emojies`;
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (of min:5, max:8 tweets) on a random small tech sub-topic of ${topic}. First tweet should be an intro on what's inside this thread (casual language, no over-excitement). Subsequent tweets should be in context to the initial tweet, with a supporting short JS code snippet, and 2 relevant hashtags at the end. Conclude the whole thread in last tweet. Provide the threads in strict JSON format (array of objects): { "image_text":  "", "threads": [ { "content": "", code: " }] }. Each tweet's content shouldn't exceed more than 200 characters (excluding code). Use less emojies. Provide a short summary headline of the thread and return it in image_text field  (will be added to the center of an image (big, bold letters), and will act as thumbnail picture of this thread)`;
       }
 
       const chatCompletion = await openai.chat.completions.create({
@@ -466,11 +488,12 @@ const generateTweetContent = async (type) => {
         model: "gpt-3.5-turbo-1106",
         response_format: { type: "json_object" },
         seed: Date.now(),
-        temperature: 1.4,
+        temperature: 1.3,
       });
 
       const response = JSON.parse(chatCompletion.choices[0].message.content);
 
+      // console.log(response);
       // await fs.writeFile("./utils/config.json", JSON.stringify(config, null, 2));
       if (type == "image") {
         response.content = `${bold(topic)}\n\n${response.content}`;
@@ -483,10 +506,14 @@ const generateTweetContent = async (type) => {
 
         response.code = await formatCode(response.code, topic);
       } else if (type == "poll") {
-        response.content += "\n\n" + (await formatCode(response.code, topic));
+        response.content +=
+          "\n\n" + (await formatCode(response.code, topic)) + "\n\n";
       } else if (type == "thread") {
-        response.threads[0].content +=
-          `\n#javascript #${topic.replace(" ", "")}\n` + "Thread Below 🧵";
+        response.threads[0].content =
+          response.threads[0].content.replace(/#[a-zA-Z0-9_]+/g, "") +
+          // `\n#javascript #${topic.replace(" ", "")}\n` +
+          "\n\n" +
+          "Thread Below 🧵";
 
         await Promise.all(
           response.threads.map(async (thread) => {
@@ -495,7 +522,6 @@ const generateTweetContent = async (type) => {
           })
         );
       }
-      // console.log(response);
 
       resolve(response);
     } catch (error) {
@@ -694,6 +720,7 @@ module.exports = {
   uploadMedia,
   tweetWithMedia,
   generateImageFromCode,
+  generateImageFromText,
   generateAudioFromText,
   generateVideoFromAudioAndImage,
   generateTweetContent,
