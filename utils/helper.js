@@ -193,10 +193,13 @@ async function tweetWithMedia(
       } else if (type == "poll") {
       } else if (type == "thread") {
         await Promise.all(
-          threads.map(async (thread) => {
-            if (thread.imageFile != null)
-              thread.mediaId = await uploadMedia(thread.imageFile);
-            else thread.mediaId = null;
+          threads.map(async (thread, i) => {
+            thread.mediaId =
+              thread.imageFile !== null
+                ? await uploadMedia(thread.imageFile)
+                : null;
+
+            thread.isLastTweet = i === threads.length - 1;
           })
         );
       } else {
@@ -205,7 +208,8 @@ async function tweetWithMedia(
       }
 
       if (type == "thread") {
-        let replyTweetId = null;
+        let replyTweetId = null,
+          firstTweetId = null;
         for (let thread of threads) {
           const tweetData = {
             text: thread.content,
@@ -232,8 +236,14 @@ async function tweetWithMedia(
               headers,
             }
           );
-
+          if (replyTweetId == null) {
+            firstTweetId = data.data.id;
+          }
           replyTweetId = data.data.id;
+
+          await new Promise((r) =>
+            setTimeout(r, parseInt(randomNumber(300, 500) * 1000))
+          );
         }
       } else {
         const tweetData = {
@@ -258,13 +268,9 @@ async function tweetWithMedia(
 
         headers["Content-Type"] = "application/json";
 
-        const { data } = await axios.post(
-          "https://api.twitter.com/2/tweets",
-          tweetData,
-          {
-            headers,
-          }
-        );
+        await axios.post("https://api.twitter.com/2/tweets", tweetData, {
+          headers,
+        });
 
         if (type == "video") {
           config.count += 1;
@@ -440,9 +446,9 @@ const generateTweetContent = async (type) => {
       } else if (type == "video") {
         PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about ${topic}. The tip should be explained in 3-4 lines (content: 200 chars max) with a supporting short JS code snippet (code) on how the tip can be implemented. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think you should use from the prompt.)`;
       } else if (type == "poll") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet related to a ${topic}. Pose a question about the code's final output or implemented concept. Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters. Only one option should be correct, while the other two are incorrect`;
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet related to a ${topic}. Make sure the code snippet is complete within itself and not just a part. Pose a question about the code snippet's final output or an implemented concept in it and provide 3 possible answers (out of which onky 1 is correct). Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters.`;
       } else if (type == "thread") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (of 4-5 tweets) on a random small tech sub-topic of ${topic}. Initial Tweet should be introduction on what's inside this thread (create a hook for users in this tweet, and it should ignite curiosity). Subsequent tweets should be in context to the initail tweet, with a supporting JS code snippet. Include ending concluding tweet as well. Provide the threads in strict JSON format (array of objects): { "threads": [ { "content": "", code: "" } ] }. Each tweet's content shouldn't exceed more than 200 characters.`;
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (of 5 tweets) on a random small tech sub-topic of ${topic}. First tweet should be the introduction on what's inside this thread (an attention grabbing hook for users). Subsequent tweets should be in context to the initail tweet, with a supporting short JS code snippet, and 2 relevant hashtags at the end. Conclude the whole thread in last tweet. Provide the threads in strict JSON format (array of objects): { "threads": [ { "content": "", code: "" } ] }. Each tweet's content shouldn't exceed more than 200 characters (excluding code). Use less emojies`;
       }
 
       const chatCompletion = await openai.chat.completions.create({
@@ -479,7 +485,8 @@ const generateTweetContent = async (type) => {
       } else if (type == "poll") {
         response.content += "\n\n" + (await formatCode(response.code, topic));
       } else if (type == "thread") {
-        response.threads[0].content += "\n\n" + "Thread Below 🧵";
+        response.threads[0].content +=
+          `\n#javascript #${topic.replace(" ", "")}\n` + "Thread Below 🧵";
 
         await Promise.all(
           response.threads.map(async (thread) => {
@@ -597,6 +604,13 @@ async function formatCode(code, topic) {
 
       if (language == "html") {
         parser = "html";
+      } else if (
+        language == "javascript" &&
+        topic.toUpperCase().includes("CSS")
+      ) {
+        parser = "vue";
+      } else if (language == "dart" && topic.toUpperCase().includes("CSS")) {
+        parser = "vue";
       }
 
       console.log("parser: ", parser, topic, language);
