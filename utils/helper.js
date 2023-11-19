@@ -509,16 +509,17 @@ const generateTweetContent = async (type) => {
         response.content +=
           "\n\n" + (await formatCode(response.code, topic)) + "\n\n";
       } else if (type == "thread") {
-        response.threads[0].content =
-          response.threads[0].content.replace(/#[a-zA-Z0-9_]+/g, "") +
-          // `\n#javascript #${topic.replace(" ", "")}\n` +
-          "\n\n" +
-          "Thread Below 🧵";
+        response.threads.map((thread, i) => {
+          thread.content =
+            thread.content.replace(/#[a-zA-Z0-9_]+/g, "") +
+            (i == 0 ? "\n\nThread Below 🧵" : "\n\n");
+        });
 
         await Promise.all(
           response.threads.map(async (thread) => {
-            if (thread.code == "") thread.code = null;
-            else thread.code = await formatCode(thread.code, topic);
+            if (thread.code == "" || thread.code == undefined) {
+              thread.code = null;
+            } else thread.code = await formatCode(thread.code, topic);
           })
         );
       }
