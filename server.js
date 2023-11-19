@@ -17,8 +17,8 @@ const maxRetries = 6;
 
 const tweetRandomTechTip = async (retryCount = 0) => {
   try {
-    const tweetTypes = ["image", "video", "poll", "thread"];
-    const tweetType = tweetTypes[3];
+    const tweetTypes = ["thread", "video", "image"];
+    // const tweetType = tweetTypes[3];
     const { content, code, audio_text, image_text, threads, options } =
       await generateTweetContent(tweetType);
     let imageFile, speechFile, videoFile, response;
@@ -98,4 +98,4 @@ const tweetRandomTechTip = async (retryCount = 0) => {
 
 // tweetRandomTechTip();
 
-Cron("47 */5 * * *", tweetRandomTechTip);
+Cron("29 */5 * * *", tweetRandomTechTip);
