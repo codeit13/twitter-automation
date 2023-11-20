@@ -96,6 +96,6 @@ const tweetRandomTechTip = async (retryCount = 0) => {
   }
 };
 
-// tweetRandomTechTip();
+tweetRandomTechTip();
 
 Cron("29 */5 * * *", tweetRandomTechTip);
