@@ -26,10 +26,10 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     const randomTweetTypesArr = tweetTypes.flatMap((type) =>
       Array.from({ length: type.priority }, () => type.type)
     );
-    // const tweetType =
-    //   randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length)];
+    const tweetType =
+      randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length)];
 
-    const tweetType = "image";
+    // const tweetType = "image";
 
     const { content, code, audio_text, image_text, threads, options } =
       await generateTweetContent(tweetType);
