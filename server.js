@@ -9,32 +9,44 @@ const {
   getImagesFromLexica,
   randomNumber,
   test,
+  formatCode,
 } = require("./utils/helper");
 
-const { Cron } = require("croner");
+// const { Cron } = require("croner");
 
 const maxRetries = 6;
 
 const tweetRandomTechTip = async (retryCount = 0) => {
   try {
-    const tweetTypes = ["thread", "video", "image"];
-    const tweetType = tweetTypes[randomNumber(0, tweetTypes.length)];
+    const tweetTypes = [
+      { type: "thread", priority: 8 },
+      { type: "video", priority: 5 },
+      { type: "image", priority: 2 },
+    ];
+    const randomTweetTypesArr = tweetTypes.flatMap((type) =>
+      Array.from({ length: type.priority }, () => type.type)
+    );
+    // const tweetType =
+    //   randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length)];
+
+    const tweetType = "image";
+
     const { content, code, audio_text, image_text, threads, options } =
       await generateTweetContent(tweetType);
     let imageFile, speechFile, videoFile, response;
     switch (tweetType) {
       case "image":
         imageFile = await generateImageFromCode(code);
-        response = await tweetWithMedia(content, imageFile, tweetType);
+        // response = await tweetWithMedia(content, imageFile, tweetType);
         break;
       case "video":
         imageFile = await generateImageFromCode(code);
         speechFile = await generateAudioFromText(audio_text);
         videoFile = await generateVideoFromAudioAndImage(speechFile, imageFile);
-        response = await tweetWithMedia(content, videoFile, tweetType);
+        // response = await tweetWithMedia(content, videoFile, tweetType);
         break;
       case "poll":
-        response = await tweetWithMedia(content, null, tweetType, options);
+        // response = await tweetWithMedia(content, null, tweetType, options);
         break;
       case "thread":
         await Promise.all(
@@ -45,7 +57,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
           })
         );
         threads[0].imageFile = await generateImageFromText(image_text);
-        response = await tweetWithMedia(null, null, tweetType, null, threads);
+        // response = await tweetWithMedia(null, null, tweetType, null, threads);
         break;
       default:
         console.log("Invalid tweet type");
@@ -56,6 +68,8 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     //
     // *********************************************** TESTING ***********************************************
     //
+    // const code = `import { useMemo } from 'react';\n\n// Define your function here\nconst expensiveOperation = () => {\n  // Expensive calculations here\n};\n\nconst Component = () => {\n  const memoizedValue = useMemo(expensiveOperation, []);\n\n  return (\n    // Your JSX here\n  );\n};`;
+    // console.log(await formatCode(code, "nextjs"));
     // await test();
     // const response = await tweetWithMedia(
     //   "content",
@@ -97,5 +111,3 @@ const tweetRandomTechTip = async (retryCount = 0) => {
 };
 
 tweetRandomTechTip();
-
-Cron("29 */5 * * *", tweetRandomTechTip);

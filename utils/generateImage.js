@@ -78,6 +78,7 @@ async function generateImage({
     });
 
     const guessedLanguage = guessLanguage(content, language);
+    console.log(content, guessedLanguage);
     const tokens = highlighter.codeToThemedTokens(content, guessedLanguage);
     const { svg } = svgRenderer.renderToSVG(tokens);
 

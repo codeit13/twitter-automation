@@ -1,0 +1,7 @@
+What is the output of below JavaScript code ❓  
+
+let count = 0;
+console.log(count++)
+console.log(++count)
+
+ What do you think? 💭

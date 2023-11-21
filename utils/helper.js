@@ -19,6 +19,7 @@ ffmpeg.setFfmpegPath(require("@ffmpeg-installer/ffmpeg").path);
 ffmpeg.setFfprobePath(require("@ffprobe-installer/ffprobe").path);
 
 const config = require("./config.json");
+const logs = require("../logs/log.json");
 
 const { generateImage } = require("./generateImage");
 
@@ -512,7 +513,7 @@ const generateTweetContent = async (type) => {
         response.threads.map((thread, i) => {
           thread.content =
             thread.content.replace(/#[a-zA-Z0-9_]+/g, "") +
-            (i == 0 ? "\n\nThread Below 🧵" : "\n\n");
+            (i == 0 ? "\n\nThread Below 🧵\n\n" : "\n\n");
         });
 
         await Promise.all(
@@ -607,42 +608,48 @@ async function deleteFile(filePath) {
 }
 
 async function formatCode(code, topic) {
-  return new Promise((resolve, reject) => {
+  const language = flourite(code, {
+    shiki: true,
+    heuristic: true,
+  }).language;
+
+  topic = topic.toLowerCase();
+
+  let parser = "babel-ts";
+  if (topic.includes("scss")) {
+    parser = "scss";
+  } else if (topic.includes("css")) {
+    parser = "css";
+  } else if (topic.includes("graphql")) {
+    parser = "graphql";
+  } else if (topic.includes("typescript")) {
+    parser = "typescript";
+  } else if (topic.includes("vue")) {
+    parser = "vue";
+  } else if (topic.includes("json")) {
+    parser = "json";
+  }
+
+  if (language == "html") {
+    parser = "html";
+  } else if (language == "javascript" && topic.includes("css")) {
+    parser = "vue";
+  } else if (language == "dart" && topic.includes("css")) {
+    parser = "vue";
+  } else if (language == "lua" && topic.includes("css")) {
+    parser = "babel";
+  } else if (
+    topic.includes("graphql") &&
+    (language == "javascript" || language == "dart")
+  ) {
+    parser = "babel-ts";
+  } else if (topic.includes("nextjs") && language == "javascript") {
+    parser = "flow";
+  }
+  console.log("parser is: ", parser, "topic: ", topic, "language: ", language);
+  return new Promise(async (resolve, reject) => {
     try {
-      const language = flourite(code, {
-        shiki: true,
-        heuristic: true,
-      }).language;
-
-      let parser = "babel-ts";
-      if (topic.toUpperCase().includes("SCSS")) {
-        parser = "scss";
-      } else if (topic.toUpperCase().includes("CSS")) {
-        parser = "css";
-      } else if (topic.toUpperCase().includes("GRAPHQL")) {
-        parser = "graphql";
-      } else if (topic.toUpperCase().includes("TYPESCRIPT")) {
-        parser = "typescript";
-      } else if (topic.toUpperCase().includes("VUE")) {
-        parser = "vue";
-      } else if (topic.toUpperCase().includes("JSON")) {
-        parser = "json";
-      }
-
-      if (language == "html") {
-        parser = "html";
-      } else if (
-        language == "javascript" &&
-        topic.toUpperCase().includes("CSS")
-      ) {
-        parser = "vue";
-      } else if (language == "dart" && topic.toUpperCase().includes("CSS")) {
-        parser = "vue";
-      }
-
-      console.log("parser: ", parser, topic, language);
-
-      const formattedCode = prettier.format(code, {
+      const formattedCode = await prettier.format(code, {
         // Prettier options (optional). You can customize these based on your preferences.
         // For example, you can set the tab width, use single or double quotes, etc.
         // For a full list of options, refer to the Prettier documentation: https://prettier.io/docs/en/options.html
@@ -655,8 +662,26 @@ async function formatCode(code, topic) {
 
       resolve(formattedCode);
     } catch (error) {
-      // console.log("error in: ", parser, topic, code);
-      resolve(code);
+      const errorLog = {
+        timestamp: new Date().toISOString(),
+        parser,
+        topic,
+        language,
+        code,
+      };
+
+      console.log("logs: ", logs);
+      if (!logs) logs = {};
+      if (logs["formatCode"] == undefined) logs["formatCode"] = [];
+
+      logs["formatCode"].push(errorLog);
+
+      await fs.writeFile(
+        path.resolve("./logs/log.json"),
+        JSON.stringify(logs, null, 2)
+      );
+
+      reject("Error in formatting code");
     }
   });
 }
@@ -730,4 +755,5 @@ module.exports = {
   getImagesFromLexica,
   randomNumber,
   test,
+  formatCode,
 };

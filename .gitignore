@@ -6,6 +6,8 @@ assets/*/*.mp3
 assets/*/*.mp4
 .credentials/*
 
+logs/*.json
+
 !assets/images
 !assets/audios
 !assets/videos
