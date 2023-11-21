@@ -37,16 +37,16 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     switch (tweetType) {
       case "image":
         imageFile = await generateImageFromCode(code);
-        // response = await tweetWithMedia(content, imageFile, tweetType);
+        response = await tweetWithMedia(content, imageFile, tweetType);
         break;
       case "video":
         imageFile = await generateImageFromCode(code);
         speechFile = await generateAudioFromText(audio_text);
         videoFile = await generateVideoFromAudioAndImage(speechFile, imageFile);
-        // response = await tweetWithMedia(content, videoFile, tweetType);
+        response = await tweetWithMedia(content, videoFile, tweetType);
         break;
       case "poll":
-        // response = await tweetWithMedia(content, null, tweetType, options);
+        response = await tweetWithMedia(content, null, tweetType, options);
         break;
       case "thread":
         await Promise.all(
@@ -57,7 +57,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
           })
         );
         threads[0].imageFile = await generateImageFromText(image_text);
-        // response = await tweetWithMedia(null, null, tweetType, null, threads);
+        response = await tweetWithMedia(null, null, tweetType, null, threads);
         break;
       default:
         console.log("Invalid tweet type");
