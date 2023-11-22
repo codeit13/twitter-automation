@@ -20,53 +20,51 @@ const maxRetries = 6;
 
 const tweetRandomTechTip = async (retryCount = 0) => {
   try {
-    // const tweetTypes = [
-    //   { type: "thread", priority: 8 },
-    //   { type: "video", priority: 5 },
-    //   { type: "image", priority: 2 },
-    //   { type: "poll", priority: 1 },
-    // ];
-    // const randomTweetTypesArr = tweetTypes.flatMap((type) =>
-    //   Array.from({ length: type.priority }, () => type.type)
-    // );
-    // const tweetType =
-    //   randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length)];
-    // console.log("tweetType: ", tweetType);
-    // const { content, code, audio_text, image_text, threads, options } =
-    //   await generateTweetContent(tweetType);
-    // let imageFile, speechFile, videoFile, response;
-    // switch (tweetType) {
-    //   case "image":
-    //     imageFile = await generateImageFromCode(code);
-    //     response = await tweetWithMedia(content, imageFile, tweetType);
-    //     break;
-    //   case "video":
-    //     imageFile = await generateImageFromCode(code);
-    //     speechFile = await generateAudioFromText(audio_text);
-    //     videoFile = await generateVideoFromAudioAndImage(speechFile, imageFile);
-    //     response = await tweetWithMedia(content, videoFile, tweetType);
-    //     break;
-    //   case "poll":
-    //     response = await tweetWithMedia(content, null, tweetType, options);
-    //     break;
-    //   case "thread":
-    //     await Promise.all(
-    //       threads.map(async (thread, i) => {
-    //         thread.imageFile = thread.code
-    //           ? await generateImageFromCode(thread.code)
-    //           : null;
-    //       })
-    //     );
-    //     threads[0].imageFile = await generateImageFromText(image_text);
-    //     response = await tweetWithMedia(null, null, tweetType, null, threads);
-    //     break;
-    //   default:
-    //     console.log("Invalid tweet type");
-    //     break;
-    // }
-    // console.log(response);
-
-    response = "Thread tweet has been posted successfully.";
+    const tweetTypes = [
+      { type: "thread", priority: 8 },
+      { type: "video", priority: 5 },
+      { type: "image", priority: 2 },
+      { type: "poll", priority: 1 },
+    ];
+    const randomTweetTypesArr = tweetTypes.flatMap((type) =>
+      Array.from({ length: type.priority }, () => type.type)
+    );
+    const tweetType =
+      randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length)];
+    console.log("tweetType: ", tweetType);
+    const { content, code, audio_text, image_text, threads, options } =
+      await generateTweetContent(tweetType);
+    let imageFile, speechFile, videoFile, response;
+    switch (tweetType) {
+      case "image":
+        imageFile = await generateImageFromCode(code);
+        response = await tweetWithMedia(content, imageFile, tweetType);
+        break;
+      case "video":
+        imageFile = await generateImageFromCode(code);
+        speechFile = await generateAudioFromText(audio_text);
+        videoFile = await generateVideoFromAudioAndImage(speechFile, imageFile);
+        response = await tweetWithMedia(content, videoFile, tweetType);
+        break;
+      case "poll":
+        response = await tweetWithMedia(content, null, tweetType, options);
+        break;
+      case "thread":
+        await Promise.all(
+          threads.map(async (thread, i) => {
+            thread.imageFile = thread.code
+              ? await generateImageFromCode(thread.code)
+              : null;
+          })
+        );
+        threads[0].imageFile = await generateImageFromText(image_text);
+        response = await tweetWithMedia(null, null, tweetType, null, threads);
+        break;
+      default:
+        console.log("Invalid tweet type");
+        break;
+    }
+    console.log(response);
 
     const now = new Date();
     const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
