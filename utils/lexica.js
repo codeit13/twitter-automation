@@ -55,8 +55,22 @@ async function getImagesFromLexica(query) {
 
       await browser.close();
 
+      const images = response.images.map((image) => {
+        return {
+          url: `https://image.lexica.art/md2_webp/${image.id}`,
+          width: image.width,
+          height: image.height,
+        };
+      });
+
+      // shuffle images array
+      images.sort(() => Math.random() - 0.5);
+
       // Output the response in your Node.js code
-      resolve(response);
+      resolve({
+        count: images.length,
+        images: images,
+      });
     } catch (error) {
       console.log(error);
       reject("Error in lexica image search: ", error);

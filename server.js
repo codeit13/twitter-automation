@@ -12,58 +12,73 @@ const {
   formatCode,
 } = require("./utils/helper");
 
+const fs = require("fs");
+
 // const { Cron } = require("croner");
 
 const maxRetries = 6;
 
 const tweetRandomTechTip = async (retryCount = 0) => {
   try {
-    const tweetTypes = [
-      { type: "thread", priority: 8 },
-      { type: "video", priority: 5 },
-      { type: "image", priority: 2 },
-    ];
-    const randomTweetTypesArr = tweetTypes.flatMap((type) =>
-      Array.from({ length: type.priority }, () => type.type)
-    );
-    const tweetType =
-      randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length)];
+    // const tweetTypes = [
+    //   { type: "thread", priority: 8 },
+    //   { type: "video", priority: 5 },
+    //   { type: "image", priority: 2 },
+    //   { type: "poll", priority: 1 },
+    // ];
+    // const randomTweetTypesArr = tweetTypes.flatMap((type) =>
+    //   Array.from({ length: type.priority }, () => type.type)
+    // );
+    // const tweetType =
+    //   randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length)];
+    // console.log("tweetType: ", tweetType);
+    // const { content, code, audio_text, image_text, threads, options } =
+    //   await generateTweetContent(tweetType);
+    // let imageFile, speechFile, videoFile, response;
+    // switch (tweetType) {
+    //   case "image":
+    //     imageFile = await generateImageFromCode(code);
+    //     response = await tweetWithMedia(content, imageFile, tweetType);
+    //     break;
+    //   case "video":
+    //     imageFile = await generateImageFromCode(code);
+    //     speechFile = await generateAudioFromText(audio_text);
+    //     videoFile = await generateVideoFromAudioAndImage(speechFile, imageFile);
+    //     response = await tweetWithMedia(content, videoFile, tweetType);
+    //     break;
+    //   case "poll":
+    //     response = await tweetWithMedia(content, null, tweetType, options);
+    //     break;
+    //   case "thread":
+    //     await Promise.all(
+    //       threads.map(async (thread, i) => {
+    //         thread.imageFile = thread.code
+    //           ? await generateImageFromCode(thread.code)
+    //           : null;
+    //       })
+    //     );
+    //     threads[0].imageFile = await generateImageFromText(image_text);
+    //     response = await tweetWithMedia(null, null, tweetType, null, threads);
+    //     break;
+    //   default:
+    //     console.log("Invalid tweet type");
+    //     break;
+    // }
+    // console.log(response);
 
-    // const tweetType = "image";
+    response = "Thread tweet has been posted successfully.";
 
-    const { content, code, audio_text, image_text, threads, options } =
-      await generateTweetContent(tweetType);
-    let imageFile, speechFile, videoFile, response;
-    switch (tweetType) {
-      case "image":
-        imageFile = await generateImageFromCode(code);
-        response = await tweetWithMedia(content, imageFile, tweetType);
-        break;
-      case "video":
-        imageFile = await generateImageFromCode(code);
-        speechFile = await generateAudioFromText(audio_text);
-        videoFile = await generateVideoFromAudioAndImage(speechFile, imageFile);
-        response = await tweetWithMedia(content, videoFile, tweetType);
-        break;
-      case "poll":
-        response = await tweetWithMedia(content, null, tweetType, options);
-        break;
-      case "thread":
-        await Promise.all(
-          threads.map(async (thread, i) => {
-            thread.imageFile = thread.code
-              ? await generateImageFromCode(thread.code)
-              : null;
-          })
-        );
-        threads[0].imageFile = await generateImageFromText(image_text);
-        response = await tweetWithMedia(null, null, tweetType, null, threads);
-        break;
-      default:
-        console.log("Invalid tweet type");
-        break;
-    }
-    console.log(response);
+    const now = new Date();
+    const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+    const date = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+    response = `${date} ${time} ${response}`;
+
+    // Append the text to the file
+    fs.appendFile("./logs/cron.txt", `${response}\n\n\n`, (err) => {
+      if (err) {
+        console.error("Error appending text:", err);
+      }
+    });
     //
     //
     // *********************************************** TESTING ***********************************************
@@ -88,17 +103,33 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     //     "home/sumit/_Projects/twitter_automation/assets/images/1699852136866.png",
     // });
     // console.log(response);
-    // const response = await getImagesFromLexica(
+    // const { count, images } = await getImagesFromLexica(
     //   "Embrace Karmayoga: Dedicate, Act, Thrive – Bhagavad Gita's Wisdom Unleashed"
     // );
+    // console.log(count);
     // console.log(`https://image.lexica.art/md2_webp/${response.images[0].id}`);
     //
     // await generateImageFromText(
     //   "Understanding the key concepts of routing and data fetching on NextJS"
     // );
+    // await generateImageFromText(
+    //   "Concise JavaScript Promises thread explanation"
+    // );
     // *********************************************** TESTING ***********************************************
   } catch (e) {
     console.log("Error posting tweet: ", e);
+
+    // append error log to logs/error.txt
+    const now = new Date();
+    const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+    const date = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+    const error = `${date} ${time} Error posting tweet (retryCount: ${retryCount}) with error: ${e}`;
+
+    fs.appendFile("./logs/error.txt", `${error}\n\n\n`, (err) => {
+      if (err) {
+        console.error("Error appending text:", err);
+      }
+    });
 
     if (retryCount < maxRetries) {
       console.log(`Retrying (attempt ${retryCount + 1}/${maxRetries})...`);
