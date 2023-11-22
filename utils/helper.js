@@ -627,8 +627,6 @@ async function formatCode(code, topic) {
   let parser = "babel";
   if (topic.includes("scss")) {
     parser = "scss";
-  } else if (topic.includes("css")) {
-    parser = "css";
   } else if (topic.includes("graphql")) {
     parser = "graphql";
   } else if (topic.includes("typescript")) {
@@ -656,6 +654,10 @@ async function formatCode(code, topic) {
     parser = "flow";
   } else if (language == "html") {
     parser = "html";
+  } else if (language == "css") {
+    parser = "css";
+  } else if (language == "json") {
+    parser = "json";
   }
   console.log("parser is: ", parser, "topic: ", topic, "language: ", language);
   return new Promise(async (resolve, reject) => {
