@@ -5,3 +5,12 @@ console.log(count++)
 console.log(++count)
 
  What do you think? 💭
+
+
+0 5 * * * cd /home/ubuntu/twitter-automation/ && /home/ubuntu/.nvm/versions/node/v16.20.1/bin/node server.js # 5 am   
+30 8 * * * cd /home/ubuntu/twitter-automation/ && /home/ubuntu/.nvm/versions/node/v16.20.1/bin/node server.js # 8:30 am
+40 10 * * * cd /home/ubuntu/twitter-automation/ && /home/ubuntu/.nvm/versions/node/v16.20.1/bin/node server.js # 10:40 am
+30 13 * * * cd /home/ubuntu/twitter-automation/ && /home/ubuntu/.nvm/versions/node/v16.20.1/bin/node server.js # 1:30 pm
+30 17 * * * cd /home/ubuntu/twitter-automation/ && /home/ubuntu/.nvm/versions/node/v16.20.1/bin/node server.js # 5:30 pm
+0 20 * * * cd /home/ubuntu/twitter-automation/ && /home/ubuntu/.nvm/versions/node/v16.20.1/bin/node server.js # 8:00 pm
+0 22 * * * cd /home/ubuntu/twitter-automation/ && /home/ubuntu/.nvm/versions/node/v16.20.1/bin/node server.js # 10:00 pm

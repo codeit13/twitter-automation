@@ -20,6 +20,8 @@ const maxRetries = 6;
 
 const tweetRandomTechTip = async (retryCount = 0) => {
   try {
+    await new Promise((r) => setTimeout(r, randomNumber(300, 500) * 1000));
+
     const tweetTypes = [
       { type: "thread", priority: 8 },
       { type: "video", priority: 5 },
