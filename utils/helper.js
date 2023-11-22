@@ -243,9 +243,9 @@ async function tweetWithMedia(
           }
           replyTweetId = data.data.id;
 
-          // randomNumber(300, 500) * 1000
-
-          await new Promise((r) => setTimeout(r, parseInt(2500)));
+          await new Promise((r) =>
+            setTimeout(r, randomNumber(300, 500) * 1000)
+          );
         }
       } else {
         const tweetData = {
