@@ -13,9 +13,9 @@ const { getImagesFromLexica } = require("./lexica");
 const FONT_MAPPING = {
   hack: {
     fontFamily: "Hack Nerd Font Mono",
-    lineHeightToFontSizeRatio: 1.5,
-    fontSize: 14,
-    fontWidth: 8.35,
+    lineHeightToFontSizeRatio: 1.7,
+    fontSize: 18,
+    fontWidth: 10.5,
   },
   iosevka: {
     fontFamily: "Iosevka Nerd Font Mono",

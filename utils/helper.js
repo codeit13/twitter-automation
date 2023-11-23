@@ -187,7 +187,7 @@ async function tweetWithMedia(
       // Step 1: Upload the media and get the media ID
       let mediaId = null;
 
-      if (type == "image") {
+      if (type == "image" || type == "question") {
         mediaId = await uploadMedia(mediaPath);
       } else if (type == "video") {
         mediaId = await uploadVideo(mediaPath);
@@ -465,13 +465,17 @@ const generateTweetContent = async (type) => {
 
       let PROMPT = null;
       if (type == "image") {
-        PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about a random sub-concept in ${topic}. The tip should be explained in 200 chars max with a supporting short JS code snippet (code) on how the tip can be implemented. Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think you should use from the prompt.)`;
+        PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about a random sub-concept in ${topic}. The tip should be explained in 200 chars max with a supporting short JS code snippet (code: prettify the code with new line and spaces) on how the tip can be implemented. Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think you should use from the prompt.)`;
       } else if (type == "video") {
-        PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about a random sub-concept in ${topic}. The tip should be explained in 200 chars max with a supporting short JS code snippet (code) on how the tip can be implemented. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think you should use from the prompt.)`;
+        PROMPT = `Random seed: ${Date.now()}. Generate a concise, (lesser-known yet impactful) tech tip about a random sub-concept in ${topic}. The tip should be explained in 200 chars max with a supporting short JS code snippet (code: prettify the code with new line and spaces) on how the tip can be implemented. Additionally, provide an 'audio_text' (will be further fed into TTS and converted to audio) which further elucidates this tip in an easily understandable language. Start the audio_text with opening statements like 'Welcome back', or 'Hey there', or other similar lines & end the audio_text with statements that encourages users to engage with the tweet.' Please avoid the common and known topics and focus more on the hidden features that are highly useful in daily life of developers. The response should be in strict JSON format: { "code": "", "content": "", "audio_text": "" }. Let's make sure the generated content is technically accurate and easy to grasp. (Make sure to not pick any exact phrases from this prompt and give them back in generated answer. Use your creativity to create your own phrases similar to the ones you think you should use from the prompt.)`;
       } else if (type == "poll") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet related to a ${topic}. Make sure the code snippet is complete within itself and not just a part. Pose a question about the code snippet's final output or an implemented concept in it and provide 3 possible answers (out of which only 1 is correct). Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters.`;
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet (prettify the code with new line and spaces) in ${topic}. The question should be a bit tricky to answer but easy to understand. Use casual language, no over-excitement & use an attention grabbing hook in question. Make sure the question isn't such that it's ambigous to answer, without a lot of context. Also provide 3 possible answers (options) (out of which strictly only one option should be correct). Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters.`;
       } else if (type == "thread") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the aspects of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language, no over-excitement & use an attention grabbing hook). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use appropriate new lines wherever necessary, to make the content look bigger), with a working/ practical short JS code snippet of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content: (min=220, max=230))). Conclude the whole thread in last tweet & ask user to like, retweet, and share, if they liked it, or share their valuable feedback in the comments. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", "threads": [ { "content": "", code: " }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text.`;
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the aspects of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language, no over-excitement & use an attention grabbing hook). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use new lines and extra spaces wherever necessary, to make the tweets look more presentable), with a working/ practical short JS code snippet (prettify the code with new line and spaces) of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content char limit: (min=220, max=230))). Conclude the whole thread in last tweet & ask user to like, retweet, and share, if they liked it, or share their valuable feedback in the comments. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", "threads": [ { "content": "", code: " }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text.`;
+      } else if (type == "question") {
+        PROMPT = `Random seed: ${Date.now()}. Write a short question on a random short JS code snippet (prettify the code with new line and spaces) in ${topic}. The question should be a bit tricky to answer but easy to understand. Use casual language, no over-excitement & use an attention grabbing hook in question. Make sure the question isn't such that it's ambigous to answer, without a lot of context. Also provide 3 possible answers (options) (out of which strictly only one option should be correct). Provide the question in strict JSON format: { "content": "", code: "", options: " }. Strictly follow these character limit rules in response:
+        1) Question + Options array character count should be min = 190 chars, max = 210 chars.
+        2) Each Option should have minimum 5 words and a maximum of 6, not more than that.`;
       }
 
       const chatCompletion = await openai.chat.completions.create({
@@ -499,7 +503,7 @@ const generateTweetContent = async (type) => {
       if (type == "image") {
         response.content = `${bold(topic)}\n\n${response.content}`;
 
-        response.code = await formatCode(response.code, topic);
+        // response.code = await formatCode(response.code, topic);
       } else if (type == "video") {
         response.content = `${bold(`Tech Tip #${config.count + 1}`)}\n\n${bold(
           topic
@@ -523,6 +527,35 @@ const generateTweetContent = async (type) => {
             } else thread.code = await formatCode(thread.code, topic);
           })
         );
+      } else if (type == "question") {
+        let optionsStr = response.options
+          .map((option, i) => {
+            return !option.includes(")")
+              ? `${
+                  i == 0
+                    ? "A"
+                    : i == 1
+                    ? "B"
+                    : i == 2
+                    ? "C"
+                    : i == 3
+                    ? "D"
+                    : "E"
+                }) ${option}`
+              : option;
+          })
+          .join("\n");
+        response.content = `${response.content}\n\n${optionsStr}\n\n\nWhat do you think? 💭`;
+
+        if (response.code.split("\n")[0].includes("```")) {
+          response.code = `${response.code
+            .split("\n")
+            .map((line) => {
+              return line.includes("```") ? "" : line;
+            })
+            .join("\n")}`;
+        }
+        response.code = await formatCode(response.code, topic);
       }
 
       resolve(response);
@@ -628,14 +661,10 @@ async function formatCode(code, topic) {
   let parser = "babel";
   if (topic.includes("scss")) {
     parser = "scss";
-  } else if (topic.includes("graphql")) {
-    parser = "graphql";
   } else if (topic.includes("typescript")) {
-    parser = "typescript";
+    parser = "babel-ts";
   } else if (topic.includes("vue")) {
     parser = "vue";
-  } else if (topic.includes("json")) {
-    parser = "json";
   }
 
   if (language == "html" && topic.includes("nextjs")) {
@@ -646,11 +675,6 @@ async function formatCode(code, topic) {
     parser = "vue";
   } else if (language == "lua" && topic.includes("css")) {
     parser = "babel";
-  } else if (
-    topic.includes("graphql") &&
-    (language == "javascript" || language == "dart")
-  ) {
-    parser = "babel";
   } else if (topic.includes("nextjs") && language == "javascript") {
     parser = "flow";
   } else if (language == "html") {
@@ -659,6 +683,8 @@ async function formatCode(code, topic) {
     parser = "css";
   } else if (language == "json") {
     parser = "json";
+  } else if (language == "typescript") {
+    parser = "babel-ts";
   }
   console.log("parser is: ", parser, "topic: ", topic, "language: ", language);
   return new Promise(async (resolve, reject) => {
@@ -695,7 +721,7 @@ async function formatCode(code, topic) {
         JSON.stringify(logs, null, 2)
       );
 
-      reject("Error in formatting code");
+      resolve(code);
     }
   });
 }
