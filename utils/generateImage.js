@@ -130,7 +130,7 @@ async function generateImage({
     );
 
     let gradientImagePath = await downloadImage(
-      images[randomNumber(0, count)].url
+      images[randomNumber(0, count - 1)].url
     );
 
     let image = sharp(gradientImagePath);

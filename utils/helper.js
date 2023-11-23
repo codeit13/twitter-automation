@@ -341,7 +341,7 @@ const generateImageFromCode = async (code) => {
     },
   ];
 
-  const randomTheme = colors[randomNumber(0, colors.length)];
+  const randomTheme = colors[randomNumber(0, colors.length - 1)];
   return new Promise(async (resolve, reject) => {
     try {
       const imageData = await generateImage({
@@ -457,7 +457,7 @@ const generateVideoFromAudioAndImage = async (speechFile, imageFile) => {
 const generateTweetContent = async (type) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const topic = config.topics[randomNumber(0, config.topics.length)];
+      const topic = config.topics[randomNumber(0, config.topics.length - 1)];
 
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,

@@ -32,7 +32,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
       Array.from({ length: type.priority }, () => type.type)
     );
     const tweetType =
-      randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length)];
+      randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length - 1)];
     console.log("tweetType: ", tweetType);
     const { content, code, audio_text, image_text, threads, options } =
       await generateTweetContent(tweetType);
