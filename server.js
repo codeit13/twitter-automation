@@ -22,7 +22,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
   try {
     const randomSecs = randomNumber(300, 500);
     console.log(`Waiting for ${(randomSecs / 60).toFixed(2)} minutes...`);
-    // await new Promise((r) => setTimeout(r, randomSecs * 1000));
+    await new Promise((r) => setTimeout(r, randomSecs * 1000));
     const tweetTypes = [
       { type: "thread", priority: 8 },
       { type: "video", priority: 5 },
@@ -35,6 +35,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     );
     const tweetType =
       randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length - 1)];
+    // const tweetType = "question";
     const { content, code, audio_text, image_text, threads, options } =
       await generateTweetContent(tweetType);
     let imageFile, speechFile, videoFile, response;
