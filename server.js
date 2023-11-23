@@ -126,7 +126,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
     const date = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
     const error = `${date} ${time} Error posting tweet (retryCount: ${retryCount}) with error: ${
-      typeof e == "object" ? JSON.stringify(e, null, 2) : e
+      typeof e == "object" ? JSON.stringify(e.data.errors || e, null, 2) : e
     }`;
 
     fs.appendFile("./logs/error.txt", `${error}\n\n\n`, (err) => {

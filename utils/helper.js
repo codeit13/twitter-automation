@@ -471,7 +471,7 @@ const generateTweetContent = async (type) => {
       } else if (type == "poll") {
         PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet related to a ${topic}. Make sure the code snippet is complete within itself and not just a part. Pose a question about the code snippet's final output or an implemented concept in it and provide 3 possible answers (out of which only 1 is correct). Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters.`;
       } else if (type == "thread") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, shoukd be able to cover all the aspects of the concept discussed. First tweet should be an intro on what's inside this thread in under 240 chars max (use casual language, no over-excitement) (use an attention grabbing hook). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use appropriate new lines wherever necessary, to make the content look bigger), with a working/ practical short JS code snippet of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content: (min=220, max=240))). Conclude the whole thread in last tweet & ask user to like, retweet, and share, if they liked it, or share their valuable feedback in the comments. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Provide the threads in strict JSON format (array of objects): { "image_text":  "", "threads": [ { "content": "", code: " }] }. Each tweet's content shouldn't exceed more than 200 characters (excluding code). Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text. Use appropriate new lines, wherever necessary for the good presentation of the tweets.`;
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the aspects of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language, no over-excitement & use an attention grabbing hook). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use appropriate new lines wherever necessary, to make the content look bigger), with a working/ practical short JS code snippet of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content: (min=220, max=230))). Conclude the whole thread in last tweet & ask user to like, retweet, and share, if they liked it, or share their valuable feedback in the comments. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", "threads": [ { "content": "", code: " }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text.`;
       }
 
       const chatCompletion = await openai.chat.completions.create({
@@ -487,10 +487,11 @@ const generateTweetContent = async (type) => {
             content: PROMPT,
           },
         ],
+        // model: "gpt-4-1106-preview",
         model: "gpt-3.5-turbo-1106",
         response_format: { type: "json_object" },
         seed: Date.now(),
-        temperature: 1.3,
+        temperature: 1.2,
       });
 
       const response = JSON.parse(chatCompletion.choices[0].message.content);
