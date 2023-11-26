@@ -24,7 +24,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     console.log(`Waiting for ${(randomSecs / 60).toFixed(2)} minutes...`);
     await new Promise((r) => setTimeout(r, randomSecs * 1000));
     const tweetTypes = [
-      { type: "thread", priority: 8 },
+      { type: "thread", priority: 6 },
       { type: "video", priority: 5 },
       { type: "question", priority: 3 },
       { type: "image", priority: 2 },

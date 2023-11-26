@@ -471,7 +471,7 @@ const generateTweetContent = async (type) => {
       } else if (type == "poll") {
         PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet (prettify the code with new line and spaces) in ${topic}. The question should be a bit tricky to answer but easy to understand. Use casual language, no over-excitement & use an attention grabbing hook in question. Make sure the question isn't such that it's ambigous to answer, without a lot of context. Also provide 3 possible answers (options) (out of which strictly only one option should be correct). Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters.`;
       } else if (type == "thread") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the aspects of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language, no over-excitement & use an attention grabbing hook). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use new lines and extra spaces wherever necessary, to make the tweets look more presentable), with a working/ practical short JS code snippet (prettify the code with new line and spaces) of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content char limit: (min=220, max=230))). Conclude the whole thread in last tweet & ask user to like, retweet, and share, if they liked it, or share their valuable feedback in the comments. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", "threads": [ { "content": "", code: " }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text.`;
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the aspects of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language, no over-excitement & use an attention grabbing hook). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use new lines and extra spaces wherever necessary, to make the tweets look more presentable), with a working/ practical short JS code snippet (prettify the code with new line and spaces) of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content char limit: (min=220, max=230))). Give two relevant hashtags per tweet. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", "threads": [ { "content": "", code: ", hashtags: ["", ""] }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text.`;
       } else if (type == "question") {
         PROMPT = `Random seed: ${Date.now()}. Write a short question on a random short JS code snippet (prettify the code with new line and spaces) in ${topic}. The question should be a bit tricky to answer but easy to understand. Use casual language, no over-excitement & use an attention grabbing hook in question. Make sure the question isn't such that it's ambigous to answer, without a lot of context. Also provide 3 possible answers (options) (out of which strictly only one option should be correct). Provide the question in strict JSON format: { "content": "", code: "", options: " }. Strictly follow these character limit rules in response:
         1) Question + Options array character count should be min = 190 chars, max = 210 chars.
@@ -521,12 +521,32 @@ const generateTweetContent = async (type) => {
         });
 
         await Promise.all(
-          response.threads.map(async (thread) => {
+          response.threads.map(async (thread, i) => {
             if (thread.code == "" || thread.code == undefined) {
               thread.code = null;
             } else thread.code = await formatCode(thread.code, topic);
+
+            if (thread.hashtags && i != 0) {
+              thread.content = `${i}/${response.threads.length - 1} ${
+                thread.content
+              }\n\n${thread.hashtags.join(", ")}\n\n`;
+            }
           })
         );
+
+        response.threads.push({
+          content: `And that's a wrap for this thread! 🎉
+          
+          If these coding tips sparked your interest:
+                    
+          🔄 Retweet the kickoff tweet.
+          ❤️ Like if you've gained insights.
+          💬 Share your thoughts in the comments.
+
+
+          👨‍💻 Follow @thesleebit for more such daily tips & tricks 💻 ❤️`,
+          code: null,
+        });
       } else if (type == "question") {
         let optionsStr = response.options
           .map((option, i) => {
