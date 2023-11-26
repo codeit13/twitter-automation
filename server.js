@@ -20,7 +20,7 @@ const maxRetries = 6;
 
 const tweetRandomTechTip = async (retryCount = 0) => {
   try {
-    const randomSecs = randomNumber(300, 500);
+    const randomSecs = randomNumber(400, 600);
     console.log(`Waiting for ${(randomSecs / 60).toFixed(2)} minutes...`);
     await new Promise((r) => setTimeout(r, randomSecs * 1000));
     const tweetTypes = [
@@ -35,7 +35,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     );
     const tweetType =
       randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length - 1)];
-    // const tweetType = "question";
+    // const tweetType = "thread";
     const { content, code, audio_text, image_text, threads, options } =
       await generateTweetContent(tweetType);
     let imageFile, speechFile, videoFile, response;
@@ -54,6 +54,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
         response = await tweetWithMedia(content, null, tweetType, options);
         break;
       case "thread":
+        console.log(threads);
         await Promise.all(
           threads.map(async (thread, i) => {
             thread.imageFile = thread.code
