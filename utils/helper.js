@@ -262,7 +262,6 @@ async function tweetWithMedia(
               }
             : {}),
           ...(threads ? { reply: { media_ids: [mediaId] } } : {}),
-          source: "web",
         };
 
         const request_data = {
