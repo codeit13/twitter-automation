@@ -61,6 +61,7 @@ function guessLanguage(code, language) {
 async function generateImage({
   type,
   content,
+  prompt,
   language,
   border,
   imageFormat,
@@ -125,9 +126,10 @@ async function generateImage({
       [imageFormat]()
       .toBuffer();
   } else if (type == "text") {
-    const { count, images } = await getImagesFromLexica(
-      "coding developer aesthetics"
-    );
+    if (!prompt) {
+      prompt = "coding developer aesthetics";
+    }
+    const { count, images } = await getImagesFromLexica(prompt);
 
     let gradientImagePath = await downloadImage(
       images[randomNumber(0, count - 1)].url
@@ -227,7 +229,8 @@ async function generateImage({
       .title {
         fill: rgb(${fill});
         font-family: DK Mandarin Whispers;
-        letter-spacing: 14px;
+        // font-family: TheGlobePersonalUseBold;
+        letter-spacing: 15px;
         font-size: ${fontSize}px;
         font-weight: bolder;
         text-anchor: middle;
@@ -235,9 +238,9 @@ async function generateImage({
 
         paint-order: stroke;
         stroke: ${strokeColor};
-        stroke-width: 5px;
-        stroke-linecap: butt;
-        stroke-linejoin: miter;
+        stroke-width: 12px;
+        // stroke-linecap: butt;
+        stroke-linejoin: round;
       }
     </style>
     <text x="50%" y="${verticalCenter - halfTextHeight}" class="title" >
@@ -264,7 +267,7 @@ async function generateImage({
     // const gradientImageWidth = gradientImageMetadata.width;
     // const gradientImageHeight = gradientImageMetadata.height;
     codeImage = await sharp(croppedImageFilePath)
-      .blur(6)
+      .blur(3)
       .composite([
         {
           input: svgBuffer,

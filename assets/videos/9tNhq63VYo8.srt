@@ -1,0 +1,48 @@
+1
+00:00:00,000 --> 00:00:01,600
+Do you have a girlfriend?
+
+2
+00:00:01,600 --> 00:00:02,440
+Hm?
+
+3
+00:00:02,440 --> 00:00:05,760
+Well, Jack has one and her name is Devon.
+
+4
+00:00:05,760 --> 00:00:07,040
+Who is Jack?
+
+5
+00:00:07,040 --> 00:00:08,920
+Um, one of my brothers.
+
+6
+00:00:10,360 --> 00:00:11,880
+One of your brothers?
+
+7
+00:00:11,880 --> 00:00:13,360
+She's pretty, isn't she?
+
+8
+00:00:13,360 --> 00:00:14,200
+Yeah.
+
+9
+00:00:14,200 --> 00:00:15,040
+You like Devon, don't you?
+
+10
+00:00:15,040 --> 00:00:18,320
+Yeah, but Jack doesn't share her with me,
+
+11
+00:00:18,320 --> 00:00:20,280
+but Devon does.
+
+12
+00:00:24,280 --> 00:00:26,340
+I love it!
+

@@ -1,3 +1,117 @@
 26/11/2023 19:47:14 Error posting tweet (retryCount: 0) with error: undefined
 
 
+30/11/2023 19:55:30 Error posting tweet (retryCount: 0) with error: Error in lexica image search: 
+
+
+30/11/2023 19:55:30 Error posting tweet (retryCount: 1) with error: Error in lexica image search: 
+
+
+30/11/2023 19:55:31 Error posting tweet (retryCount: 2) with error: Error in lexica image search: 
+
+
+30/11/2023 19:55:32 Error posting tweet (retryCount: 3) with error: Error in lexica image search: 
+
+
+30/11/2023 19:55:32 Error posting tweet (retryCount: 4) with error: Error in lexica image search: 
+
+
+30/11/2023 19:55:33 Error posting tweet (retryCount: 5) with error: Error in lexica image search: 
+
+
+30/11/2023 19:55:33 Error posting tweet (retryCount: 6) with error: Error in lexica image search: 
+
+
+30/11/2023 19:56:56 Error posting tweet (retryCount: 0) with error: Error in lexica image search: 
+
+
+30/11/2023 19:56:56 Error posting tweet (retryCount: 1) with error: Error in lexica image search: 
+
+
+30/11/2023 19:56:57 Error posting tweet (retryCount: 2) with error: Error in lexica image search: 
+
+
+30/11/2023 19:56:57 Error posting tweet (retryCount: 3) with error: Error in lexica image search: 
+
+
+30/11/2023 19:56:58 Error posting tweet (retryCount: 4) with error: Error in lexica image search: 
+
+
+30/11/2023 19:56:58 Error posting tweet (retryCount: 5) with error: Error in lexica image search: 
+
+
+30/11/2023 19:56:59 Error posting tweet (retryCount: 6) with error: Error in lexica image search: 
+
+
+30/11/2023 19:58:3 Error posting tweet (retryCount: 0) with error: Error in lexica image search: 
+
+
+30/11/2023 19:58:30 Error posting tweet (retryCount: 1) with error: Error in lexica image search: 
+
+
+30/11/2023 19:58:56 Error posting tweet (retryCount: 2) with error: Error in lexica image search: 
+
+
+30/11/2023 19:59:31 Error posting tweet (retryCount: 0) with error: Error in lexica image search: 
+
+
+30/11/2023 19:59:45 Error posting tweet (retryCount: 1) with error: Error in lexica image search: 
+
+
+30/11/2023 19:59:46 Error posting tweet (retryCount: 2) with error: Error in lexica image search: 
+
+
+30/11/2023 19:59:46 Error posting tweet (retryCount: 3) with error: Error in lexica image search: 
+
+
+30/11/2023 19:59:47 Error posting tweet (retryCount: 4) with error: Error in lexica image search: 
+
+
+30/11/2023 19:59:47 Error posting tweet (retryCount: 5) with error: Error in lexica image search: 
+
+
+30/11/2023 19:59:48 Error posting tweet (retryCount: 6) with error: Error in lexica image search: 
+
+
+30/11/2023 22:54:23 Error posting tweet (retryCount: 0) with error: Test Catch: 
+
+
+30/11/2023 22:54:23 Error posting tweet (retryCount: 1) with error: Test Catch: 
+
+
+30/11/2023 22:54:23 Error posting tweet (retryCount: 2) with error: Test Catch: 
+
+
+30/11/2023 22:54:23 Error posting tweet (retryCount: 3) with error: Test Catch: 
+
+
+30/11/2023 22:54:23 Error posting tweet (retryCount: 4) with error: Test Catch: 
+
+
+30/11/2023 22:54:23 Error posting tweet (retryCount: 5) with error: Test Catch: 
+
+
+30/11/2023 22:54:23 Error posting tweet (retryCount: 6) with error: Test Catch: 
+
+
+30/11/2023 22:54:38 Error posting tweet (retryCount: 0) with error: Test Catch: 
+
+
+30/11/2023 22:54:38 Error posting tweet (retryCount: 1) with error: Test Catch: 
+
+
+30/11/2023 22:54:38 Error posting tweet (retryCount: 2) with error: Test Catch: 
+
+
+30/11/2023 22:54:38 Error posting tweet (retryCount: 3) with error: Test Catch: 
+
+
+30/11/2023 22:54:38 Error posting tweet (retryCount: 4) with error: Test Catch: 
+
+
+30/11/2023 22:54:38 Error posting tweet (retryCount: 5) with error: Test Catch: 
+
+
+30/11/2023 22:54:38 Error posting tweet (retryCount: 6) with error: Test Catch: 
+
+

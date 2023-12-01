@@ -32,6 +32,7 @@
     "puppeteer": "^21.5.1",
     "sharp": "0.32.1",
     "shiki": "0.14.2",
+    "srt-to-ass": "^0.1.10",
     "temp": "^0.9.4",
     "text-metrics": "^4.0.1"
   },

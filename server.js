@@ -36,7 +36,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     const tweetType =
       randomTweetTypesArr[randomNumber(0, randomTweetTypesArr.length - 1)];
     // const tweetType = "thread";
-    const { content, code, audio_text, image_text, threads, options } =
+    const { content, code, audio_text, image_text, prompt, threads, options } =
       await generateTweetContent(tweetType);
     let imageFile, speechFile, videoFile, response;
     switch (tweetType) {
@@ -62,7 +62,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
               : null;
           })
         );
-        threads[0].imageFile = await generateImageFromText(image_text);
+        threads[0].imageFile = await generateImageFromText(image_text, prompt);
         response = await tweetWithMedia(null, null, tweetType, null, threads);
         break;
       case "question":
@@ -84,6 +84,7 @@ const tweetRandomTechTip = async (retryCount = 0) => {
         console.error("Error appending text:", err);
       }
     });
+    // *******************************************************************************************************
     //
     //
     // *********************************************** TESTING ***********************************************
@@ -116,7 +117,8 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     // console.log(`https://image.lexica.art/md2_webp/${response.images[0].id}`);
     //
     // await generateImageFromText(
-    //   "Understanding the key concepts of routing and data fetching on NextJS"
+    //   "Understanding the key concepts of routing and data fetching on NextJS",
+    //   "coding developer girl"
     // );
     // await generateImageFromText(
     //   "Concise JavaScript Promises thread explanation"

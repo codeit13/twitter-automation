@@ -15,6 +15,8 @@ const ffmpeg = require("fluent-ffmpeg");
 const ffprobe = require("ffprobe");
 const ffprobeStatic = require("ffprobe-static");
 
+const { convert: srtToAss } = require("srt-to-ass");
+
 ffmpeg.setFfmpegPath(require("@ffmpeg-installer/ffmpeg").path);
 ffmpeg.setFfprobePath(require("@ffprobe-installer/ffprobe").path);
 
@@ -244,7 +246,7 @@ async function tweetWithMedia(
           replyTweetId = data.data.id;
 
           await new Promise((r) =>
-            setTimeout(r, randomNumber(300, 600) * 1000)
+            setTimeout(r, randomNumber(400, 600) * 1000)
           );
         }
       } else {
@@ -260,6 +262,7 @@ async function tweetWithMedia(
               }
             : {}),
           ...(threads ? { reply: { media_ids: [mediaId] } } : {}),
+          source: "web",
         };
 
         const request_data = {
@@ -301,13 +304,14 @@ async function tweetWithMedia(
   });
 }
 
-const generateImageFromText = async (text) => {
+const generateImageFromText = async (text, prompt = null) => {
   return new Promise(async (resolve, reject) => {
     try {
       const imageData = await generateImage({
         type: "text",
         content: text,
         imageFormat: "png",
+        prompt,
       });
 
       const imageFile = path.resolve(`./assets/images/${Date.now()}.png`);
@@ -471,7 +475,7 @@ const generateTweetContent = async (type) => {
       } else if (type == "poll") {
         PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet (prettify the code with new line and spaces) in ${topic}. The question should be a bit tricky to answer but easy to understand. Use casual language, no over-excitement & use an attention grabbing hook in question. Make sure the question isn't such that it's ambigous to answer, without a lot of context. Also provide 3 possible answers (options) (out of which strictly only one option should be correct). Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters.`;
       } else if (type == "thread") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the aspects of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language, no over-excitement & use an attention grabbing hook). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use new lines and extra spaces wherever necessary, to make the tweets look more presentable), with a working/ practical short JS code snippet (prettify the code with new line and spaces) of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content char limit: (min=220, max=230))). Give two viral hashtags per tweet for javascript coding topics. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", "threads": [ { "content": "", code: ", hashtags: ["", ""] }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text.`;
+        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the important details of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language & no over-excitement, use an attention grabbing hook and shouldnt look too witty, keep it casual). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use new lines and extra spaces wherever necessary, to make the tweets look more presentable), with a working/ useful short JS code snippet (prettify the code with new line and spaces) of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content char limit: (min=220, max=230))). Give two viral hashtags per tweet for javascript coding topics. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", image_prompt: "", "threads": [ { "content": "", code: ", hashtags: ["", ""] }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text. Provide a short image prompt for the type of image that should catch users attention (should create a sense of interesting & cool content in viewer's mind), and should relate to the tweet.`;
       } else if (type == "question") {
         PROMPT = `Random seed: ${Date.now()}. Write a short question on a random short JS code snippet (prettify the code with new line and spaces) in ${topic}. The question should be a bit tricky to answer but easy to understand. Use casual language, no over-excitement & use an attention grabbing hook in question. Make sure the question isn't such that it's ambigous to answer, without a lot of context. Also provide 3 possible answers (options) (out of which strictly only one option should be correct). Provide the question in strict JSON format: { "content": "", code: "", options: " }. Strictly follow these character limit rules in response:
         1) Question + Options array character count should be min = 190 chars, max = 210 chars.
@@ -745,38 +749,29 @@ async function formatCode(code, topic) {
 async function test() {
   return new Promise((resolve, reject) => {
     try {
-      const imageFile =
-        "/home/sumit/_Projects/twitter_automation/assets/images/1700075208588.png";
-      const speechFile =
-        "/home/sumit/_Projects/twitter_automation/assets/audios/1700075212475.mp3";
+      const srtFile = "/home/sumit/_Projects/twitter_automation/assFile.ass";
+      // "/home/sumit/_Projects/twitter_automation/assets/videos/9tNhq63VYo8.srt";
       const videoFile =
-        "/home/sumit/_Projects/twitter_automation/assets/videos/new.mp4";
+        "/home/sumit/_Projects/twitter_automation/assets/videos/video1.mp4";
 
-      const audioDuration = 16;
+      // extract contents of srtFile into a string and pass to srtToAss function
+      // const srtContent = syncFs.readFileSync(srtFile, "utf8");
+      // const assContent = srtToAss(srtFile, "./assFile.ass");
+
+      // console.log(assContent);
 
       // Now use the obtained duration to set the image duration
-      const command = ffmpeg()
-        .input(imageFile)
-        .loop(audioDuration)
-        .input(speechFile)
-        .inputFPS(30)
-        .videoBitrate(32)
-        .audioCodec("aac")
-        .videoCodec("libx264")
-        .aspectRatio("1:1")
-        .outputOptions([
-          "-profile:v main", // Set video profile
-          "-level 3.1", // Set video level
-          "-strict -2", // Allow experimental codecs
-          "-g 30", // Set GOP size to 30 frames (adjust as needed)
-          "-y", // Overwrite output files without asking,
-          "-b:v 2048K", // Adjust based on Twitter's recommendations
-          "-b:a 32K", // Adjust based on Twitter's recommendations,
-          "-pix_fmt yuv420p",
-        ])
-        .keepDAR()
-        .audioFilters("volume=2", `adelay=${1.2 * 1000}|${1.2 * 1000}`)
-        .output(videoFile)
+      const command = ffmpeg(videoFile)
+        // .input(videoFile)
+        // .videoFilters(
+        //   "subtitles",
+        //   srtFile,
+        //   (force_style = "OutlineColour=&H40000000,BorderStyle=3")
+        // )
+        .outputOptions(
+          `-vf subtitles=${srtFile}:force_style='OutlineColour=&H40000000,BorderStyle=3'`
+        )
+        .output("./video.mp4")
         .on("start", (commandLine) => {
           console.log(`Spawned Ffmpeg with command: ${commandLine}`);
         })
@@ -784,15 +779,14 @@ async function test() {
           console.log("Video Creation Finished");
           resolve();
         })
-        .on("stderr", (stderrLine) => {
-          console.log("Stderr output:", stderrLine);
-        })
+        // .on("stderr", (s
         .on("error", (err) => {
           console.log("Error:", err);
         });
 
       command.run();
     } catch (e) {
+      console.log(e);
       reject("Test Catch: ", e);
     }
   });
