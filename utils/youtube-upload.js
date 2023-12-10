@@ -229,19 +229,21 @@ function getChannel(auth) {
   );
 }
 
-(async () => {
-  // read json file using await
-  const data = await fs.readFileSync(
-    "/home/sumit/_Projects/twitter_automation/assets/files/yt_upload_args.json"
-  );
+if (process.argv[2] == run) {
+  (async () => {
+    // read json file using await
+    const data = await fs.readFileSync(
+      "/home/sumit/_Projects/twitter_automation/assets/files/yt_upload_args.json"
+    );
 
-  const args = JSON.parse(data);
-  try {
-    await uploadToYoutube(args);
-  } catch (error) {
-    console.log(error);
-  }
-})();
+    const args = JSON.parse(data);
+    try {
+      await uploadToYoutube(args);
+    } catch (error) {
+      console.log(error);
+    }
+  })();
+}
 
 // fs.readFile("./assets/files/yt_args.json", (err, data) => {
 //   if (err) {
