@@ -28,6 +28,8 @@ const { generateImage } = require("./generateImage");
 const { uploadToYoutube } = require("./youtube-upload");
 const { getImagesFromLexica } = require("./lexica");
 
+const { createClient } = require("pexels");
+
 // Your keys and tokens
 const CONSUMER_KEY = process.env.CONSUMER_KEY;
 const CONSUMER_SECRET = process.env.CONSUMER_SECRET;
@@ -257,7 +259,7 @@ async function tweetWithMedia(
             ? {
                 poll: {
                   options,
-                  duration_minutes: 4320,
+                  duration_minutes: 2000,
                 },
               }
             : {}),
@@ -474,7 +476,7 @@ const generateTweetContent = async (type) => {
       } else if (type == "poll") {
         PROMPT = `Random seed: ${Date.now()}. Create a Twitter poll with a short JS code snippet (prettify the code with new line and spaces) in ${topic}. The question should be a bit tricky to answer but easy to understand. Use casual language, no over-excitement & use an attention grabbing hook in question. Make sure the question isn't such that it's ambigous to answer, without a lot of context. Also provide 3 possible answers (options) (out of which strictly only one option should be correct). Provide the question (content), code & three possible answers in strict JSON format: { "content": "", code: "", "options": ["", "", ""] }. Ensure each option is no more than 20 characters.`;
       } else if (type == "thread") {
-        PROMPT = `Random seed: ${Date.now()}. Create a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the important details of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language & no over-excitement, use an attention grabbing hook and shouldnt look too witty, keep it casual). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use new lines and extra spaces wherever necessary, to make the tweets look more presentable), with a working/ useful short JS code snippet (prettify the code with new line and spaces) of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content char limit: (min=220, max=230))). Give two viral hashtags per tweet for javascript coding topics. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", image_prompt: "", "threads": [ { "content": "", code: ", hashtags: ["", ""] }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text. Provide a short image prompt for the type of image that should catch users attention (should create a sense of interesting & cool content in viewer's mind) (include a developer girl in picture), and should relate to the tweet.`;
+        PROMPT = `Random seed: ${Date.now()}. Write a Twitter thread (6-8 tweets) on a random sub-concept in ${topic}. Complete thread as a whole, should be able to cover all the important details of the sub-concept discussed. First tweet should be an intro on what's inside this thread (min: 220 chars, max: 230 chars) (use casual language with no over-excitement keep straight to the point, no deep dive, or similar lines) (Make sure you use an attention grabbing hook that goes like x no. of developers use these tricks to improve their code, or here are x no of ways you can use this, or do you know why you code does this every time you try to do this, and other simialr hooks, they should not look too witty, keep it straight to the point, no welcome, hey devs or such opening statements). Subsequent tweets should discuss about different aspects of the concept discussed in the initial tweet (use new lines and extra spaces wherever necessary, to make the tweets look more presentable), with a working/ useful short JS code snippet (prettify the code with new line and spaces) of that aspect (content language should be such that it's also easy for beginner readers to understand the concept (content char limit: (min=220, max=230))). Give two viral hashtags per tweet for javascript coding topics. Make sure the reader of the whole thread is able to easily grasp/ understand the concept discussed in it. Use appropriate new lines, wherever necessary for the good presentation of the tweets. Provide the threads in strict JSON format (array of objects): { "image_text":  "", image_prompt: "", "threads": [ { "content": "", code: ", hashtags: ["", ""] }] }. Use less emojies. Provide a short attention grabbing headline (5-6 words) for the thread and return it in image_text. Provide a short image prompt for the kind of aesthetic image that should catch users attention (image should have a cool aesthetic developer girl/boy working, and the image_prompt on whole should create a sense of interesting and calm/ amazing content in viewer's mind), and should relate to the tweet.`;
       } else if (type == "question") {
         PROMPT = `Random seed: ${Date.now()}. Write a short question on a random short JS code snippet (prettify the code with new line and spaces) in ${topic}. The question should be a bit tricky to answer but easy to understand. Use casual language, no over-excitement & use an attention grabbing hook in question. Make sure the question isn't such that it's ambigous to answer, without a lot of context. Also provide 3 possible answers (options) (out of which strictly only one option should be correct). Provide the question in strict JSON format: { "content": "", code: "", options: " }. Strictly follow these character limit rules in response:
         1) Question + Options array character count should be min = 190 chars, max = 210 chars.
@@ -498,7 +500,7 @@ const generateTweetContent = async (type) => {
         // model: "gpt-3.5-turbo-1106",
         response_format: { type: "json_object" },
         seed: Date.now(),
-        temperature: 1.2,
+        temperature: 0.9,
       });
 
       const response = JSON.parse(chatCompletion.choices[0].message.content);
@@ -521,6 +523,8 @@ const generateTweetContent = async (type) => {
           thread.content =
             thread.content.replace(/#[a-zA-Z0-9_]+/g, "") +
             (i == 0 ? "\n\nThread Below 🧵\n\n" : "\n\n");
+
+          thread.content = thread.content.replace(".", ".\n\n");
         });
 
         await Promise.all(
@@ -669,6 +673,32 @@ async function deleteFile(filePath) {
   }
 }
 
+async function downloadVideo(url) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const response = await axios({
+        method: "get",
+        url: url,
+        responseType: "stream",
+      });
+      const videoPath = path.resolve(`./assets/videos/${Date.now()}.mp4`);
+      const videoFile = syncFs.createWriteStream(videoPath);
+      response.data.pipe(videoFile);
+
+      videoFile.on("finish", () => {
+        videoFile.close();
+        resolve(videoPath);
+      });
+
+      videoFile.on("error", (err) => {
+        reject(err);
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 async function formatCode(code, topic) {
   const language = flourite(code, {
     shiki: true,
@@ -746,12 +776,12 @@ async function formatCode(code, topic) {
 }
 
 async function test() {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       const srtFile = "/home/sumit/_Projects/twitter_automation/assFile.ass";
       // "/home/sumit/_Projects/twitter_automation/assets/videos/9tNhq63VYo8.srt";
       const videoFile =
-        "/home/sumit/_Projects/twitter_automation/assets/videos/video1.mp4";
+        "/home/sumit/_Projects/twitter_automation/assets/videos/shorts/output_2.mp4";
 
       // extract contents of srtFile into a string and pass to srtToAss function
       // const srtContent = syncFs.readFileSync(srtFile, "utf8");
@@ -760,30 +790,69 @@ async function test() {
       // console.log(assContent);
 
       // Now use the obtained duration to set the image duration
-      const command = ffmpeg(videoFile)
-        // .input(videoFile)
-        // .videoFilters(
-        //   "subtitles",
-        //   srtFile,
-        //   (force_style = "OutlineColour=&H40000000,BorderStyle=3")
-        // )
-        .outputOptions(
-          `-vf subtitles=${srtFile}:force_style='OutlineColour=&H40000000,BorderStyle=3'`
-        )
-        .output("./video.mp4")
+      // const command = ffmpeg(videoFile)
+      //   // .input(videoFile)
+      //   // .videoFilters(
+      //   //   "subtitles",
+      //   //   srtFile,
+      //   //   (force_style = "OutlineColour=&H40000000,BorderStyle=3")
+      //   // )
+      //   .outputOptions(
+      //     `-vf subtitles=${srtFile}:force_style='OutlineColour=&H40000000,BorderStyle=3'`
+      //   )
+      //   .output("./video.mp4")
+      //   .on("start", (commandLine) => {
+      //     console.log(`Spawned Ffmpeg with command: ${commandLine}`);
+      //   })
+      //   .on("end", () => {
+      //     console.log("Video Creation Finished");
+      //     resolve();
+      //   })
+      //   // .on("stderr", (s
+      //   .on("error", (err) => {
+      //     console.log("Error:", err);
+      //   });
+
+      // command.run();
+
+      const client = createClient(process.env.PEXELS_API_KEY);
+      const query = "Vlogging";
+
+      const videos = await client.videos.search({ query, per_page: 80 });
+      console.log(videos["videos"].length);
+      const videoUrl =
+        videos["videos"][randomNumber(0, videos["videos"].length - 1)]
+          .video_files[0].link;
+
+      console.log(videoUrl);
+
+      const videoPath = await downloadVideo(videoUrl);
+      const textOverlay = "Your Text";
+
+      ffmpeg()
+        .input(videoPath)
+        .input(
+          "/home/sumit/_Projects/twitter_automation/assets/audios/1701069965357.wav"
+        ) // Replace with the actual TTS audio file
+        .complexFilter([
+          `[0:v]drawtext=text='${textOverlay}':fontsize=50:box=1:boxcolor=white@0.5:boxborderw=5:x=(w-text_w)/2:y=(h-text_h)/2[video]`,
+          `[0:a][1:a]amix=inputs=2:duration=first[audio]`,
+        ])
+        .outputOptions("-c:v libx264 -c:a aac")
+        .output("./final_output.mp4")
         .on("start", (commandLine) => {
           console.log(`Spawned Ffmpeg with command: ${commandLine}`);
         })
-        .on("end", () => {
-          console.log("Video Creation Finished");
-          resolve();
+        .on("stderr", function (stderrLine) {
+          console.log("Stderr output: " + stderrLine);
         })
-        // .on("stderr", (s
-        .on("error", (err) => {
-          console.log("Error:", err);
-        });
-
-      command.run();
+        .on("progress", function (progress) {
+          console.log("Processing: " + progress.percent + "% done");
+        })
+        .on("end", () => {
+          console.log("Video with subtitles created successfully!");
+        })
+        .run();
     } catch (e) {
       console.log(e);
       reject("Test Catch: ", e);

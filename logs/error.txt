@@ -115,3 +115,9 @@
 30/11/2023 22:54:38 Error posting tweet (retryCount: 6) with error: Test Catch: 
 
 
+5/12/2023 23:19:4 Error posting tweet (retryCount: 0) with error: Test Catch: 
+
+
+5/12/2023 23:19:5 Error posting tweet (retryCount: 1) with error: Test Catch: 
+
+

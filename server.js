@@ -105,9 +105,9 @@ const tweetRandomTechTip = async (retryCount = 0) => {
     //     "Hola, Arigato Osimasss How are you all doing today. This is a test description from NodeJS.",
     //   tags: "#test #nodejs #tags",
     //   videoFilePath:
-    //     "/home/sumit/_Projects/twitter_automation/assets/videos/1699853657961.mp4",
+    //     "/home/sumit/_Projects/twitter_automation/assets/reels/reel_2023-12-08 00:27:23.129305.mp4",
     //   thumbFilePath:
-    //     "home/sumit/_Projects/twitter_automation/assets/images/1699852136866.png",
+    //     "/home/sumit/_Projects/twitter_automation/assets/images/1700768898949.png",
     // });
     // console.log(response);
     // const { count, images } = await getImagesFromLexica(
