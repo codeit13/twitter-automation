@@ -11,7 +11,7 @@ var SCOPES = ["https://www.googleapis.com/auth/youtube.upload"];
 // var TOKEN_DIR = __dirname + "/.credentials";
 const TOKEN_DIR = path.resolve(`.credentials`);
 
-var TOKEN_PATH = TOKEN_DIR + "/credentials.json";
+var TOKEN_PATH = TOKEN_DIR + "/youtube_credentials.json";
 
 // video category IDs for YouTube:
 const categoryIds = {
@@ -61,19 +61,21 @@ function uploadVideo(auth, payload, resolve, reject) {
 
   const service = google.youtube("v3");
 
+  let snippet = {
+    title: `${title} | ${tags.split(" ").splice(0, 3).join(" ")}`,
+    description,
+    tags: tags.split(" ").splice(0, 3).join(" "),
+    categoryId: categoryIds.Education,
+    defaultLanguage: "en",
+    defaultAudioLanguage: "en",
+  };
+  console.log(snippet);
   service.videos.insert(
     {
       auth: auth,
       part: "snippet,status",
       requestBody: {
-        snippet: {
-          title,
-          description,
-          tags,
-          categoryId: categoryIds.ScienceTechnology,
-          defaultLanguage: "en",
-          defaultAudioLanguage: "en",
-        },
+        snippet,
         status: {
           privacyStatus: "public",
         },
@@ -226,5 +228,28 @@ function getChannel(auth) {
     }
   );
 }
+
+(async () => {
+  // read json file using await
+  const data = await fs.readFileSync(
+    "/home/sumit/_Projects/twitter_automation/assets/files/yt_upload_args.json"
+  );
+
+  const args = JSON.parse(data);
+  try {
+    await uploadToYoutube(args);
+  } catch (error) {
+    console.log(error);
+  }
+})();
+
+// fs.readFile("./assets/files/yt_args.json", (err, data) => {
+//   if (err) {
+//     console.log(err);
+//   } else {
+//     JSON.parse(data)
+//   }
+// });
+// uploadToYoutube({});
 
 module.exports = { uploadToYoutube };
