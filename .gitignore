@@ -4,7 +4,7 @@ package-lock.json
 assets/*/*.png
 assets/*/*.mp3
 assets/*/*.mp4
-assets/*/*
+# assets/*/*
 .credentials/*
 
 logs/*.json

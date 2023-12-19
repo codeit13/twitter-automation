@@ -62,14 +62,24 @@ function uploadVideo(auth, payload, resolve, reject) {
   const service = google.youtube("v3");
 
   let snippet = {
-    title: `${title} | ${tags.split(" ").splice(0, 3).join(" ")}`,
+    title: `${title.split(":")[0]} | ${tags.split(" ").splice(0, 3).join(" ")}`,
     description,
     tags: tags.split(" ").splice(0, 3).join(" "),
     categoryId: categoryIds.Education,
     defaultLanguage: "en",
     defaultAudioLanguage: "en",
   };
-  console.log(snippet);
+
+  console.log(
+    JSON.stringify(
+      {
+        payload,
+        snippet,
+      },
+      null,
+      4
+    )
+  );
   service.videos.insert(
     {
       auth: auth,
@@ -90,30 +100,33 @@ function uploadVideo(auth, payload, resolve, reject) {
         reject("The API returned an error: " + err);
         return;
       }
-      console.log("Video uploaded, uploading thumbnail now");
+      console.log("Video uploaded...\n");
 
       const insertData = response.data;
 
-      service.thumbnails.set(
-        {
-          auth: auth,
-          videoId: response.data.id,
-          media: {
-            body: fs.createReadStream(thumbFilePath),
+      if (thumbFilePath != "FALSE") {
+        console.log("Uploading thumbnail now...\n");
+        service.thumbnails.set(
+          {
+            auth: auth,
+            videoId: response.data.id,
+            media: {
+              body: fs.createReadStream(thumbFilePath),
+            },
           },
-        },
-        function (err, response) {
-          if (err) {
-            reject("The API returned an error: " + err);
-            return;
+          function (err, response) {
+            if (err) {
+              reject("The API returned an error: " + err);
+              return;
+            }
+            console.log("Thumbnail uploaded\n");
+            resolve({
+              insertData: insertData,
+              thumbnailData: response.data,
+            });
           }
-          console.log("Thumbnail uploaded");
-          resolve({
-            insertData: insertData,
-            thumbnailData: response.data,
-          });
-        }
-      );
+        );
+      }
     }
   );
 }
@@ -229,7 +242,7 @@ function getChannel(auth) {
   );
 }
 
-if (process.argv[2] == run) {
+if (process.argv[2] == "run") {
   (async () => {
     // read json file using await
     const data = await fs.readFileSync(
