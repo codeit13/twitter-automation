@@ -36,7 +36,7 @@ const categoryIds = {
 const uploadToYoutube = async (payload) => {
   return new Promise((resolve, reject) => {
     fs.readFile(
-      "/home/sumit/_Projects/twitter_automation/tokens/client_secret.json",
+      path.resolve("./tokens/client_secret.json"),
       function processClientSecrets(err, content) {
         if (err) {
           reject("Error loading client secret file: " + err);
@@ -246,7 +246,7 @@ if (process.argv[2] == "run") {
   (async () => {
     // read json file using await
     const data = await fs.readFileSync(
-      "/home/sumit/_Projects/twitter_automation/assets/files/yt_upload_args.json"
+      path.resolve("./assets/files/yt_upload_args.json")
     );
 
     const args = JSON.parse(data);
