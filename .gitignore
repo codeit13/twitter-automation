@@ -1,16 +1,22 @@
 node_modules
 .env
 package-lock.json
-assets/*/*.png
-assets/*/*.mp3
-assets/*/*.mp4
-# assets/*/*
+
+assets/*/*
 .credentials/*
+
+
+
+# assets/*/*.png
+# assets/*/*.mp3
+# assets/*/*.mp4
+# assets/*/*
+# .credentials/*
 
 logs/*.json
 
-!assets/images
-!assets/audios
-!assets/videos
-!assets/files
-!.credentials
+# !assets/images
+# !assets/audios
+# !assets/videos
+# !assets/files
+# !.credentials
