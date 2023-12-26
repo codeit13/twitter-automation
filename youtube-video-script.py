@@ -712,6 +712,9 @@ final_video.write_videofile(
 # Youtube Upload
 
 # %%
+spinner = Spinner("Uploading to YouTube")
+spinner.start()
+
 thumbFilePath = f"./assets/images/yt_thumbnail.png"
 run_shell_command(
     f"ffmpeg -i {reelPath} -frames:v 1 -ss 10 -f image2 -y {thumbFilePath}"
@@ -732,5 +735,7 @@ with open("./assets/files/yt_upload_args.json", "w") as f:
         indent=4,
     )
 run_shell_command("node utils/youtube-upload.js run")
+
+spinner.finish()
 
 # %%
