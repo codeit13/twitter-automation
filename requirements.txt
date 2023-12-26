@@ -5,3 +5,4 @@ faster-whisper==0.7.0
 moviepy==2.0.0.dev2
 imageio==2.25.1
 numpy
+openai

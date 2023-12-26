@@ -125,7 +125,6 @@ dummy = False
 import os
 from datetime import datetime
 from openai import OpenAI
-from IPython.display import Audio
 
 bar = Bar("TTS Audio", max=1)
 client = OpenAI(
@@ -144,7 +143,6 @@ if dummy == False:
     )
     response.stream_to_file(audioPath)
 
-Audio(audioPath)
 bar.next()
 bar.finish()
 # %%
