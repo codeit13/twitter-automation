@@ -1,60 +1,48 @@
-import subprocess
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
-def run_shell_command(command):
-    """
-    Run a shell command and return the output.
-
-    Args:
-    - command (str): The shell command to execute.
-
-    Returns:
-    - str: The output of the command.
-    """
-    try:
-        result = subprocess.run(
-            command,
-            shell=True,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-        print(result.stdout.strip())
-        return result.stdout.strip()
-
-    except subprocess.CalledProcessError as e:
-        # If the command fails, you might want to handle the error
-        print(f"Command Failed. Error Message: {e.stderr.strip()}")
-        return None
+import sys
+import time
+import threading
 
 
-reelPath = "./assets/reels/reel_1702540295.mp4"
-seoTitle = "Test Title"
-seoDescription = "Test Description"
-seoHashtags = "#test, #test2"
+class Spinner(threading.Thread):
+    def __init__(self, text):
+        super().__init__()
+        self.is_running = False
+        self.text = text
+        self.start_time = 0
+
+    def run(self):
+        print()
+        self.is_running = True
+        start_time = time.time()
+        self.start_time = start_time
+        spinner = "|/-\\"
+        index = 0
+        while self.is_running:
+            elapsed_time = time.time() - start_time
+            sys.stdout.write(f"\r{self.text} [{elapsed_time:.1f}s] {spinner[index]}")
+            sys.stdout.flush()
+            index = (index + 1) % len(spinner)
+            time.sleep(0.1)
+
+    def stop(self):
+        self.is_running = False
+        self.join()
+
+    def finish(self):
+        self.stop()
+        elapsed_time = time.time() - self.start_time
+        sys.stdout.write(f"\r{self.text} [{elapsed_time:.1f}s] ✅")
+        sys.stdout.flush()
 
 
-thumbFilePath = f"./assets/images/yt_thumbnail.png"
-run_shell_command(
-    f"ffmpeg -i {reelPath} -frames:v 1 -ss 10 -f image2 -y {thumbFilePath}"
-)
-thumbFilePath = "FALSE" or os.path.abspath(thumbFilePath)
-import json, os
+# Example usage:
+spinner = Spinner("Loading")
+spinner.start()
+time.sleep(5)  # Simulate some work
+spinner.finish()
 
-with open("./assets/files/yt_upload_args.json", "w") as f:
-    json.dump(
-        {
-            "title": seoTitle.split("|")[0].strip(),
-            "description": f"{seoDescription}\n\nPhotos provided by Pexels\n\nMusic: bensound.com\nLicense code: OT8XBWRLANC7HXPR",
-            "tags": seoHashtags,
-            "videoFilePath": os.path.abspath(reelPath),
-            "thumbFilePath": thumbFilePath,
-        },
-        f,
-        indent=4,
-    )
-run_shell_command("node utils/youtube-upload.js run")
+# Call example usage again
+spinner = Spinner("Processing")
+spinner.start()
+time.sleep(3)  # Simulate some work
+spinner.finish()

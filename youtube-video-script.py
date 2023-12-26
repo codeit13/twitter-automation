@@ -1,6 +1,10 @@
 # %%
 import subprocess
-from progress.bar import Bar
+
+# from progress.bar import
+import sys
+import time
+import threading
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,7 +29,6 @@ def run_shell_command(command):
             stderr=subprocess.PIPE,
             text=True,
         )
-        print(result.stdout.strip())
         return result.stdout.strip()
 
     except subprocess.CalledProcessError as e:
@@ -34,12 +37,48 @@ def run_shell_command(command):
         return None
 
 
+class Spinner(threading.Thread):
+    def __init__(self, text):
+        super().__init__()
+        self.is_running = False
+        self.text = text
+        self.start_time = 0
+
+    def run(self):
+        print()
+        self.is_running = True
+        start_time = time.time()
+        self.start_time = start_time
+        spinner = "|/-\\"
+        index = 0
+        while self.is_running:
+            elapsed_time = time.time() - start_time
+            sys.stdout.write(f"\r{self.text} [{elapsed_time:.1f}s] {spinner[index]}")
+            sys.stdout.flush()
+            index = (index + 1) % len(spinner)
+            time.sleep(0.1)
+
+    def stop(self):
+        self.is_running = False
+        self.join()
+
+    def finish(self):
+        self.stop()
+        elapsed_time = time.time() - self.start_time
+        sys.stdout.write(f"\r{self.text} [{elapsed_time:.1f}s] ✅")
+        sys.stdout.flush()
+
+
 # %%
 from faster_whisper import WhisperModel
 
-model_size = "medium"
+spinner = Spinner("Loading Whisper Model in VRAM")
+spinner.start()
+
+model_size = "small"
 # if dummy == False:
 model = WhisperModel(model_size, compute_type="float32")
+spinner.finish()
 
 # %%
 # @markdown # **Content Generation** 🚀
@@ -47,7 +86,8 @@ dummy = False
 import os, json, re, random
 from openai import OpenAI
 
-bar = Bar("Generating Content", max=1)
+spinner = Spinner("Generating content for Video")
+spinner.start()
 
 client = OpenAI(
     # This is the default and can be omitted
@@ -90,8 +130,8 @@ if dummy == False:
                 + ". Use TikTok video script tone. Start from 'Did you know' statements. Share multiple shorts facts in same context as intial statements that will blow listener's mind, and are very less commonly heard. Have a bias for impact value statements with numbers. Skip opening hi/hello welcome kind of statements, directly jump to the story which will keep the user hooked. Try to pack the maximum useful information in the script as possible. Use “Global English” to make content and context accessible for non-native comprehension. Don’t use idioms. Be literal and stay away from metaphors and colloquial language. Keep sentences short. Standardise terminology to minimise changes. Avoid directional language. Use inclusive, accessible, person-first language. This audio script will be further fed into TTS engine so write accordingly. Also return seo title, seo description and seo hashtags (only 3 tags) for youtube uploads. Keep title very very short.\nReturn your answer strictly in this json format: { 'script': '', seoTitle: '', seoDescription: '', seoHashtags: '' }",
             },
         ],
-        model="gpt-4-1106-preview",
-        # model="gpt-3.5-turbo-1106",
+        # model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo-1106",
         response_format={"type": "json_object"},
     )
 
@@ -106,8 +146,7 @@ else:
         "seoHashtags": "#AncientGreece #HistoryFacts #DarkPast",
     }
 
-bar.next()
-bar.finish()
+spinner.finish()
 
 seoTitle = content.get("seoTitle")
 seoHashtags = content.get("seoHashtags")
@@ -126,7 +165,9 @@ import os
 from datetime import datetime
 from openai import OpenAI
 
-bar = Bar("TTS Audio", max=1)
+spinner = Spinner("Generating TTS Audio File")
+spinner.start()
+
 client = OpenAI(
     # This is the default and can be omitted
     api_key=os.getenv("OPENAI_API_KEY"),
@@ -143,12 +184,13 @@ if dummy == False:
     )
     response.stream_to_file(audioPath)
 
-bar.next()
-bar.finish()
+spinner.finish()
 # %%
 import json
 
-bar = Bar("Whisper Transcription", max=1)
+spinner = Spinner("Performing Whisper Transcription on TTS Audio File")
+spinner.start()
+
 segments, info = model.transcribe(audioPath, word_timestamps=True)
 
 segments = list(segments)  # The transcription will actually run here.
@@ -167,8 +209,7 @@ for word_info in wordlevel_info:
             "word": word_info["word"].strip(),
         }
     )
-bar.next()
-bar.finish()
+spinner.finish()
 
 
 # %%
@@ -242,7 +283,9 @@ import urllib.request, time, json
 from datetime import datetime
 from openai import OpenAI
 
-# print(json.dumps(linelevel_subtitles, indent=4))
+spinner = Spinner("Generating video Tags using ChatGPT")
+spinner.start()
+
 audioDuration = float(
     run_shell_command(
         'ffprobe -i assets/audios/ai_audio.mp3 -show_entries format=duration -v quiet -of csv="p=0"'
@@ -293,11 +336,10 @@ else:
         {"start": "33.0s", "end": "36.0s", "tags": "cosmic mysteries, contemplation"},
     ]
 
-# print(json.dumps(videoTags, indent=4))
-print("Successfully generated video tags...")
-
+spinner.finish()
 # %%
-print("Starting stock video fetching process...")
+spinner = Spinner("Extracting Stock Video Footages based on video tags")
+spinner.start()
 
 url = "https://api.pexels.com/videos/search"
 headers = {"Authorization": "aZB4nryvsXVSv6T6EUWmf4flWHX1ZPestuRD0OQ91FgEL5H9XuRxnxHH"}
@@ -341,12 +383,13 @@ for entry in videoTags:
                             ) and firstVideoHeight == video.get("height"):
                                 video["user"] = userVideos.get("user")
                                 videos.append(video)
-    print(f"Found {len(videos)} videos")
+    # print(f"Found {len(videos)} videos")
     entry["video"] = videos[random.randint(0, len(videos) - 1)]
     videoPath = f"./assets/videos/stock_video_{int(time.time())}.mp4"
     urllib.request.urlretrieve(entry["video"]["link"], videoPath)
     entry["video"]["path"] = videoPath
 
+spinner.finish()
 # print(json.dumps(videoTags, indent=4))
 
 # %%
@@ -362,6 +405,8 @@ audioDuration = (
     )
     + 2
 )
+spinner = Spinner(f"Trimming {len(videoTags)} videos")
+spinner.start()
 
 dummy = False
 for i, video in enumerate(videoTags):
@@ -372,12 +417,14 @@ for i, video in enumerate(videoTags):
         else float(str(video["end"]).replace("s", ""))
     ) - float(str(video["start"]).replace("s", ""))
     newVideoPath = f"assets/videos/stock_video_{int(time.time())}.mp4"
-    print(f"Trimming Video {i+1} to {videoDuration}s...", end=" ")
+    # print(f"Trimming Video {i+1} to {videoDuration}s...", end=" ")
     run_shell_command(
         f"ffmpeg -i {videoPath} -ss 00 -to {videoDuration} -c:a copy -y {newVideoPath}"
     )
     video["video"]["newPath"] = newVideoPath
-    print("Done...\n")
+    # print("Done...\n")
+
+spinner.finish()
 
 if dummy == False:
     mergeVideoCommand = "ffmpeg "
@@ -400,12 +447,16 @@ if dummy == False:
     audioDuration = audioDuration if audioDuration < 59 else 59
     mergeVideoCommand += f'concat=n={len(videoTags)}:v=1:a=0[outv];[{len(videoTags)}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vaudio];[{len(videoTags)+1}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vbackground];[vbackground]volume=0.05[vb];[vaudio][vb]amix=inputs=2:duration=longest[a]" -map "[outv]" -map "[a]" -vsync vfr -ss 00 -to {audioDuration} -crf 24 -y assets/videos/trimmed_video.mp4'
 
-    print("Executing this merge Command: ", mergeVideoCommand)
+    print("\n\n Executing FFMPEG command: ", mergeVideoCommand, end="")
+    spinner = Spinner("Progress")
+    spinner.start()
 
     run_shell_command(mergeVideoCommand)
 
+    spinner.finish()
+
 output_video_path = "./assets/videos/trimmed_video.mp4"
-print(f"Combined video saved to: {output_video_path}")
+print(f"\n\nCombined video saved to: {output_video_path}")
 
 # %%
 from moviepy.editor import TextClip, CompositeVideoClip, ColorClip
