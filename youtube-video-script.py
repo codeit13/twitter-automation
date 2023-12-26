@@ -1,5 +1,6 @@
 # %%
 import subprocess
+from progress.bar import Bar
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -34,9 +35,6 @@ def run_shell_command(command):
 
 
 # %%
-dummy = False
-
-# %%
 from faster_whisper import WhisperModel
 
 model_size = "medium"
@@ -45,9 +43,11 @@ model = WhisperModel(model_size, compute_type="float32")
 
 # %%
 # @markdown # **Content Generation** 🚀
-
+dummy = False
 import os, json, re, random
 from openai import OpenAI
+
+bar = Bar("Generating Content", max=1)
 
 client = OpenAI(
     # This is the default and can be omitted
@@ -55,22 +55,24 @@ client = OpenAI(
 )
 
 topics = [
-    "space",
-    "planets",
-    "universe",
-    "science",
-    "history",
-    "technology",
-    "books",
-    "quotes",
-    "reading",
-    "stoicism",
-    "travel",
-    "horror",
-    "war",
-    "meditation",
-    "book summaries (philosophy)",
-    "DIY tips",
+    "Dirty History Facts",
+    "Greek empire attrocities",
+    "Slaves in Ancient Civilizations",
+    "Britishers in India",
+    "British Colonies",
+    "Daily Life in Ancient Empires",
+    "Untold Stories of Ancient Civilizations",
+    "Celestial Marvels: Space Discoveries Unveiled",
+    "Ancient Empires",
+    "Mysteries of the Past",
+    "Time Capsule: Uncovering Ancient Artifacts",
+    "Legends and Lore: Historical Tales in a Minute",
+    "Battles (epic) of History",
+    "Hidden Treasures: Forgotten Artifacts of the Past",
+    "Time-Travel Tech: Concepts and Possibilities",
+    "Lost Cities: Unearthed Histories and Ancient Mysteries",
+    "Amazing Animal Facts",
+    "Mindful Living Tips ",
 ]
 
 random_topic = random.choice(topics)
@@ -79,13 +81,13 @@ if dummy == False:
         messages=[
             {
                 "role": "system",
-                "content": "You are an expert short form video content generator, which is very cusious to listen to, user get's deeply involved in your generated content.",
+                "content": "You are an expert short form video content generator, your content is straight to the point, and very accurate.",
             },
             {
                 "role": "user",
-                "content": "Write the audio script (max 600 characters long) for video on topic: "
+                "content": "Write the audio script (max 600 characters long) for a video on "
                 + random_topic
-                + ". Use TikTok video script tone, and try to tell a very interesting story. Include common pain points. Include clear step-by-step details if neccessarily required. Have a bias for impact value statements with numbers. Highlight pro tips & Skip opening hi/hello welcome kind of statements, directly jump to the story which will keep the user hooked. Try to pack the maximum useful information in the script as possible. Use “Global English” to make content and context accessible for non-native comprehension. Don’t use idioms. Be literal and stay away from metaphors and colloquial language. Keep sentences short. Standardize terminology to minimize changes. Avoid directional language. Use inclusive, accessible, person-first language. This audio script will be further fed into TTS engine so write accordingly. Also return seo title, seo description and seo hashtags for youtube uploads. Keep title very very short. \nReturn your answer strictly in this json format: { 'script': '', seoTitle: '', seoDescription: '', seoHashtags: '' }",
+                + ". Use TikTok video script tone. Start from 'Did you know' statements. Share multiple shorts facts in same context as intial statements that will blow listener's mind, and are very less commonly heard. Have a bias for impact value statements with numbers. Skip opening hi/hello welcome kind of statements, directly jump to the story which will keep the user hooked. Try to pack the maximum useful information in the script as possible. Use “Global English” to make content and context accessible for non-native comprehension. Don’t use idioms. Be literal and stay away from metaphors and colloquial language. Keep sentences short. Standardise terminology to minimise changes. Avoid directional language. Use inclusive, accessible, person-first language. This audio script will be further fed into TTS engine so write accordingly. Also return seo title, seo description and seo hashtags (only 3 tags) for youtube uploads. Keep title very very short.\nReturn your answer strictly in this json format: { 'script': '', seoTitle: '', seoDescription: '', seoHashtags: '' }",
             },
         ],
         model="gpt-4-1106-preview",
@@ -98,11 +100,15 @@ if dummy == False:
 
 else:
     content = {
-        "script": "Did you know that the universe is expanding at a mind-boggling rate? In fact, new observations suggest that the expansion of the universe may be accelerating. This goes against the traditional understanding of gravity and raises profound questions about the nature of space, time, and the cosmos. Scientists believe that a mysterious force called dark energy may be responsible for this cosmic acceleration, but its true nature remains one of the greatest mysteries in astrophysics. Imagine a force that is pushing all the galaxies in the universe away from each other at an ever-increasing speed, creating a space that's expanding faster than our ability to comprehend. It's a concept that challenges our fundamental understanding of the universe and opens up a realm of possibilities that are both exhilarating and perplexing. As we continue to unravel the secrets of space, the mysteries of cosmic expansion remind us that there is so much more to the universe than meets the eye.",
-        "seoTitle": "Mind-Boggling Space Fact: The Universe's Mysterious Expansion",
-        "seoDescription": "Discover the mind-boggling truth about the universe's accelerating expansion and the enigmatic force of dark energy. Explore the mysteries of space and cosmic evolution!",
-        "seoHashtags": "#SpaceFacts #CosmicExpansion #DarkEnergyMystery #Astrophysics",
+        "script": "Did you know the ancient Greek empire had a dark side? Mind-blowing fact: The Spartans threw weak babies off cliffs! That's just the tip of the iceberg. Here's more - in Athens, slavery was a major industry with every citizen owning at least one slave. The Greeks also believed in human sacrifice, particularly during times of war. And the famous Greek philosophers? Many of them taught that some lives were simply worth more than others. These are unsettling truths behind the pillars and poetry of ancient Greece.",
+        "seoTitle": "Dark Side of Ancient Greece",
+        "seoDescription": "Uncover the shocking atrocities of the ancient Greek empire. From Spartan infanticide to Athenian slavery and human sacrifices - the untold history revealed!",
+        "seoHashtags": "#AncientGreece #HistoryFacts #DarkPast",
     }
+
+bar.next()
+bar.finish()
+
 seoTitle = content.get("seoTitle")
 seoHashtags = content.get("seoHashtags")
 seoDescription = content.get("seoDescription")
@@ -115,12 +121,13 @@ print(json.dumps(content, indent=4))
 
 # %%
 # @markdown # **Audio File (TTS)** 🚀
-
+dummy = False
 import os
 from datetime import datetime
 from openai import OpenAI
 from IPython.display import Audio
 
+bar = Bar("TTS Audio", max=1)
 client = OpenAI(
     # This is the default and can be omitted
     api_key=os.getenv("OPENAI_API_KEY"),
@@ -138,13 +145,15 @@ if dummy == False:
     response.stream_to_file(audioPath)
 
 Audio(audioPath)
-print("TTS Audio created successfully.")
+bar.next()
+bar.finish()
 # %%
 import json
 
+bar = Bar("Whisper Transcription", max=1)
 segments, info = model.transcribe(audioPath, word_timestamps=True)
-segments = list(segments)  # The transcription will actually run here.
 
+segments = list(segments)  # The transcription will actually run here.
 wordlevel_info = []
 
 for segment in segments:
@@ -160,7 +169,8 @@ for word_info in wordlevel_info:
             "word": word_info["word"].strip(),
         }
     )
-print("Whisper Transcription success.")
+bar.next()
+bar.finish()
 
 
 # %%
@@ -227,6 +237,7 @@ linelevel_subtitles = split_text_into_lines(modified_wordlevel_info)
 
 
 # %%
+dummy = False
 import requests, random
 import urllib.request, time, json
 
@@ -254,7 +265,8 @@ client = OpenAI(
 )
 if dummy == False:
     chat_completion = client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model="gpt-4-1106-preview",
+        # model="gpt-3.5-turbo-1106",
         response_format={"type": "json_object"},
         messages=[{"role": "user", "content": transcript}],
     )
@@ -399,10 +411,11 @@ print(f"Combined video saved to: {output_video_path}")
 
 # %%
 from moviepy.editor import TextClip, CompositeVideoClip, ColorClip
-import numpy as np
 
+# import numpy as np
+import math
 import textwrap
-from PIL import ImageFont
+from PIL import Image, ImageFont
 
 
 def soft_wrap_text(
@@ -425,6 +438,37 @@ def soft_wrap_text(
     max_chars = max_width / letter_width
     wrapped_text = textwrap.fill(text, width=max_chars)
     return wrapped_text
+
+
+def zoom_in_effect(clip, zoom_ratio=0.04):
+    def effect(get_frame, t):
+        img = Image.fromarray(get_frame(t))
+        base_size = img.size
+
+        new_size = [
+            math.ceil(img.size[0] * (1 + (zoom_ratio * t))),
+            math.ceil(img.size[1] * (1 + (zoom_ratio * t))),
+        ]
+
+        # The new dimensions must be even.
+        new_size[0] = new_size[0] + (new_size[0] % 2)
+        new_size[1] = new_size[1] + (new_size[1] % 2)
+
+        img = img.resize(new_size, Image.LANCZOS)
+
+        x = math.ceil((new_size[0] - base_size[0]) / 2)
+        y = math.ceil((new_size[1] - base_size[1]) / 2)
+
+        img = img.crop([x, y, new_size[0] - x, new_size[1] - y]).resize(
+            base_size, Image.LANCZOS
+        )
+
+        result = numpy.array(img)
+        img.close()
+
+        return result
+
+    return clip.fl(effect)
 
 
 def create_caption(
