@@ -215,7 +215,7 @@ spinner.finish()
 
 # %%
 def split_text_into_lines(data):
-    MaxChars = 15
+    MaxChars = 10
     # maxduration in seconds
     MaxDuration = 2.5
     # Split if nothing is spoken (gap) for these many seconds
@@ -448,8 +448,8 @@ if dummy == False:
     audioDuration = audioDuration if audioDuration < 59 else 59
     mergeVideoCommand += f'concat=n={len(videoTags)}:v=1:a=0[outv];[{len(videoTags)}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vaudio];[{len(videoTags)+1}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vbackground];[vbackground]volume=0.05[vb];[vaudio][vb]amix=inputs=2:duration=longest[a]" -map "[outv]" -map "[a]" -vsync vfr -ss 00 -to {audioDuration} -crf 24 -y assets/videos/trimmed_video.mp4'
 
-    print("\n\n Executing FFMPEG command: ", mergeVideoCommand, end="")
-    spinner = Spinner("Progress")
+    print("\n\nExecuting FFMPEG command: ", mergeVideoCommand)
+    spinner = Spinner("FFMPEG merge Command")
     spinner.start()
 
     run_shell_command(mergeVideoCommand)
@@ -457,7 +457,7 @@ if dummy == False:
     spinner.finish()
 
 output_video_path = "./assets/videos/trimmed_video.mp4"
-print(f"\n\nCombined video saved to: {output_video_path}")
+print(f"\nCombined video saved to: {output_video_path}")
 
 # %%
 from moviepy.editor import TextClip, CompositeVideoClip, ColorClip
@@ -557,7 +557,7 @@ def create_caption(
 
         wrap_title = soft_wrap_text(
             wordJSON["word"],
-            font_family="/usr/share/fonts/truetype/Bevan/Bevan-Regular.ttf",
+            font_family="./fonts/Bevan-Regular.ttf",
             fontsize=fontsize,
             letter_spacing=12,
             max_width=frame_width * 0.8,  # *0.8 for some padding
@@ -637,7 +637,7 @@ def create_caption(
     for highlight_word in xy_textclips_positions:
         wrap_title = soft_wrap_text(
             highlight_word["word"],
-            font_family="/usr/share/fonts/truetype/Bevan/Bevan-Regular.ttf",
+            font_family="./fonts/Bevan-Regular.ttf",
             fontsize=fontsize,
             letter_spacing=12,
             max_width=frame_width * 0.8,  # *0.8 for some padding
