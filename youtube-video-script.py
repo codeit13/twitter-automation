@@ -1,5 +1,6 @@
 # %%
 import subprocess
+import os
 
 # from progress.bar import
 import sys
@@ -162,7 +163,6 @@ print(json.dumps(content, indent=4))
 # %%
 # @markdown # **Audio File (TTS)** 🚀
 dummy = False
-import os
 from datetime import datetime
 from openai import OpenAI
 
@@ -422,7 +422,9 @@ for i, video in enumerate(videoTags):
     run_shell_command(
         f"ffmpeg -i {videoPath} -ss 00 -to {videoDuration} -c:a copy -y {newVideoPath}"
     )
-    video["video"]["newPath"] = newVideoPath
+    video["video"]["trimmedPath"] = newVideoPath
+    if os.path.exists(videoPath):
+        os.remove(videoPath)
     # print("Done...\n")
 
 spinner.finish()
@@ -431,7 +433,7 @@ if dummy == False:
     mergeVideoCommand = "ffmpeg "
 
     for video in videoTags:
-        videoPath = video["video"]["newPath"]
+        videoPath = video["video"]["trimmedPath"]
         mergeVideoCommand += f"-i {videoPath} "
 
     mergeVideoCommand += (
@@ -453,6 +455,10 @@ if dummy == False:
     spinner.start()
 
     run_shell_command(mergeVideoCommand)
+    for video in videoTags:
+        trimmedVideoPath = video["video"]["trimmedPath"]
+        if os.path.exists(trimmedVideoPath):
+            os.remove(trimmedVideoPath)
 
     spinner.finish()
 
@@ -709,6 +715,8 @@ final_video.write_videofile(
     ffmpeg_params=["-pix_fmt", "yuv420p"],
 )
 
+if os.path.exists(output_video_path):
+    os.remove(output_video_path)
 # %% [markdown]
 # Youtube Upload
 
