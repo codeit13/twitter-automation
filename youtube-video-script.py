@@ -126,13 +126,13 @@ if dummy == False:
             },
             {
                 "role": "user",
-                "content": "Write the audio script (max 600 characters long) for a video on "
+                "content": "Write the audio script (max 500 characters long) for a video on "
                 + random_topic
-                + ". Use TikTok video script tone. Start from 'Did you know' statements. Share multiple shorts facts in same context as intial statements that will blow listener's mind, and are very less commonly heard. Have a bias for impact value statements with numbers. Skip opening hi/hello welcome kind of statements, directly jump to the story which will keep the user hooked. Try to pack the maximum useful information in the script as possible. Use “Global English” to make content and context accessible for non-native comprehension. Don’t use idioms. Be literal and stay away from metaphors and colloquial language. Keep sentences short. Standardise terminology to minimise changes. Avoid directional language. Use inclusive, accessible, person-first language. This audio script will be further fed into TTS engine so write accordingly. Also return seo title, seo description and seo hashtags (only 3 tags) for youtube uploads. Keep title very very short.\nReturn your answer strictly in this json format: { 'script': '', seoTitle: '', seoDescription: '', seoHashtags: '' }",
+                + ". Use TikTok video style script tone. Start from 'Did you know' statements (shocking statement). Share multiple shorts facts in same context as intial statements that will blow listener's mind, and are very less commonly heard. The facts shouldn't be totally unrelated, they should feel connected to each other. Have a bias for impact value statements with numbers. Skip opening hi/hello welcome kind of statements, directly jump to the story which will keep the user hooked. Try to pack the maximum amount of mind blowing information in the script as possible. Use “Global English” to make content and context accessible for non-native comprehension. Don’t use idioms. Be literal and stay away from metaphors and colloquial language. Keep sentences short. Standardise terminology to minimise changes. Avoid directional language. Use inclusive, accessible, person-first language. This audio script will be further fed into TTS engine so write accordingly. Also return seo title, seo description and seo hashtags (only 3 tags) for youtube uploads. Keep title very very short.\nReturn your answer strictly in this json format: { 'script': '', seoTitle: '', seoDescription: '', seoHashtags: '' }",
             },
         ],
-        # model="gpt-4-1106-preview",
-        model="gpt-3.5-turbo-1106",
+        model="gpt-4-1106-preview",
+        # model="gpt-3.5-turbo-1106",
         response_format={"type": "json_object"},
     )
 
@@ -180,7 +180,7 @@ audiofilename = audioPath
 if dummy == False:
     response = client.audio.speech.create(
         model="tts-1",
-        voice="alloy",
+        voice="onyx",
         input=audioScript,
     )
     response.stream_to_file(audioPath)
@@ -215,7 +215,7 @@ spinner.finish()
 
 # %%
 def split_text_into_lines(data):
-    MaxChars = 10
+    MaxChars = 4
     # maxduration in seconds
     MaxDuration = 2.5
     # Split if nothing is spoken (gap) for these many seconds
@@ -299,7 +299,7 @@ for entry in linelevel_subtitles:
         f"start: {entry['start']}s , end: {entry['end']}s , line: {entry['word']}\n"
     )
 
-transcript += "\n\n\nI wwant to generate strictly some tags for this video transcript, each 3s long for the entire duration of the video, it will be further used to generate stock footages for this video. I want asmr kind of stock footage for my videos so generate tags accordingly. Make sure to keep the time duration between tags same. Return video tags in this json format: { 'tags': [{ start: <start_time>, end: <end_time>, tags: '' }] } \n\n"
+transcript += "\n\n\nI wwant to generate strictly some tags for this video transcript, each 3s long for the entire duration of the video, it will be further used to search for stock video footages for this video for the respective video duration. I want asmr kind of stock footage for my videos so generate tags accordingly. Make sure to keep the time duration between tags same. Return video tags in this json format: { 'tags': [{ start: <start_time>, end: <end_time>, tags: '' }] } \n\n"
 
 client = OpenAI(
     # This is the default and can be omitted
@@ -307,8 +307,8 @@ client = OpenAI(
 )
 if dummy == False:
     chat_completion = client.chat.completions.create(
-        model="gpt-4-1106-preview",
-        # model="gpt-3.5-turbo-1106",
+        # model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo-1106",
         response_format={"type": "json_object"},
         messages=[{"role": "user", "content": transcript}],
     )
@@ -468,7 +468,7 @@ print(f"\nCombined video saved to: {output_video_path}")
 # %%
 from moviepy.editor import TextClip, CompositeVideoClip, ColorClip
 
-# import numpy as np
+import numpy as np
 import math
 import textwrap
 from PIL import Image, ImageFont
@@ -496,7 +496,7 @@ def soft_wrap_text(
     return wrapped_text
 
 
-def zoom_in_effect(clip, zoom_ratio=0.04):
+def zoom_in_effect(clip, zoom_ratio=0.2):
     def effect(get_frame, t):
         img = Image.fromarray(get_frame(t))
         base_size = img.size
@@ -519,7 +519,7 @@ def zoom_in_effect(clip, zoom_ratio=0.04):
             base_size, Image.LANCZOS
         )
 
-        result = numpy.array(img)
+        result = np.array(img)
         img.close()
 
         return result
@@ -532,7 +532,7 @@ def create_caption(
     framesize,
     font="Bevan Regular",
     color="white",
-    bgcolor="yellow",
+    bgcolor="#edb143",
     stroke_color="black",
     stroke_width=4,
 ):
@@ -548,10 +548,10 @@ def create_caption(
     frame_width = framesize[0]
     frame_height = framesize[1]
 
-    x_buffer = frame_width * 1 / 12
+    x_buffer = frame_width * 1 / 10
     y_buffer = frame_height * 1 / 2
 
-    fontsize = int(frame_height * 0.035)  # 3.5 percent of video height
+    fontsize = int(frame_height * 0.03)  # 3.5 percent of video height
 
     space_width = ""
     space_height = ""
@@ -562,7 +562,7 @@ def create_caption(
         # TextClip
 
         wrap_title = soft_wrap_text(
-            wordJSON["word"],
+            wordJSON["word"].upper(),
             font_family="./fonts/Bevan-Regular.ttf",
             fontsize=fontsize,
             letter_spacing=12,
@@ -642,7 +642,7 @@ def create_caption(
 
     for highlight_word in xy_textclips_positions:
         wrap_title = soft_wrap_text(
-            highlight_word["word"],
+            highlight_word["word"].upper(),
             font_family="./fonts/Bevan-Regular.ttf",
             fontsize=fontsize,
             letter_spacing=12,
@@ -666,7 +666,7 @@ def create_caption(
         word_clip_highlight = word_clip_highlight.set_position(
             (highlight_word["x_pos"], highlight_word["y_pos"])
         )
-        word_clips.append(word_clip_highlight)
+        word_clips.append(zoom_in_effect(word_clip_highlight))
 
     return word_clips
 
@@ -743,8 +743,8 @@ with open("./assets/files/yt_upload_args.json", "w") as f:
         f,
         indent=4,
     )
-run_shell_command("node utils/youtube-upload.js run")
+run_shell_command(
+    "/home/ubuntu/.nvm/versions/node/v16.20.1/bin/node utils/youtube-upload.js run"
+)
 
 spinner.finish()
-
-# %%

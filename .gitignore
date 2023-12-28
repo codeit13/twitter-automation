@@ -5,8 +5,6 @@ package-lock.json
 assets/*/*
 .credentials/*
 
-
-
 # assets/*/*.png
 # assets/*/*.mp3
 # assets/*/*.mp4
