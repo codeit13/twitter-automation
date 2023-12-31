@@ -1,14 +1,13 @@
 # %%
-import subprocess
-import os
-
 # from progress.bar import
-import sys
-import time
-import threading
+import time, random, sys, threading, os, subprocess
 from dotenv import load_dotenv
 
 load_dotenv()
+
+videoTypes = ["IMAGES", "VIDEOS"]
+videoType = random.choice(videoTypes)
+# videoType = "IMAGES"
 
 
 def run_shell_command(command):
@@ -84,7 +83,7 @@ spinner.finish()
 # %%
 # @markdown # **Content Generation** 🚀
 dummy = False
-import os, json, re, random
+import json, re
 from openai import OpenAI
 
 spinner = Spinner("Generating content for Video")
@@ -131,8 +130,8 @@ if dummy == False:
                 + ". Use TikTok video style script tone. Start from 'Did you know' statements (shocking statement). Share multiple shorts facts in same context as intial statements that will blow listener's mind, and are very less commonly heard. The facts shouldn't be totally unrelated, they should feel connected to each other. Have a bias for impact value statements with numbers. Skip opening hi/hello welcome kind of statements, directly jump to the story which will keep the user hooked. Try to pack the maximum amount of mind blowing information in the script as possible. Use “Global English” to make content and context accessible for non-native comprehension. Don’t use idioms. Be literal and stay away from metaphors and colloquial language. Keep sentences short. Standardise terminology to minimise changes. Avoid directional language. Use inclusive, accessible, person-first language. This audio script will be further fed into TTS engine so write accordingly. Also return seo title, seo description and seo hashtags (only 3 tags) for youtube uploads. Keep title very very short.\nReturn your answer strictly in this json format: { 'script': '', seoTitle: '', seoDescription: '', seoHashtags: '' }",
             },
         ],
-        model="gpt-4-1106-preview",
-        # model="gpt-3.5-turbo-1106",
+        # model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo-1106",
         response_format={"type": "json_object"},
     )
 
@@ -215,7 +214,7 @@ spinner.finish()
 
 # %%
 def split_text_into_lines(data):
-    MaxChars = 4
+    MaxChars = 5
     # maxduration in seconds
     MaxDuration = 2.5
     # Split if nothing is spoken (gap) for these many seconds
@@ -276,6 +275,40 @@ def split_text_into_lines(data):
 linelevel_subtitles = split_text_into_lines(modified_wordlevel_info)
 
 
+def group_timestamps(linelevel_subtitles, duration=2.0):
+    grouped_timestamps = []
+    current_group = {"word": "", "start": None, "end": None}
+
+    for timestamp in linelevel_subtitles:
+        start_time = timestamp["start"]
+        end_time = timestamp["end"]
+        word = timestamp["word"]
+
+        if current_group["start"] is None:
+            current_group["start"] = start_time
+
+        while start_time < end_time:
+            group_end_time = min(start_time + duration, end_time)
+            current_group["end"] = group_end_time
+            current_group["word"] += f"{word} "
+
+            start_time = group_end_time
+
+            if start_time >= end_time:
+                break
+
+        if start_time - current_group["start"] >= duration:
+            grouped_timestamps.append(current_group.copy())
+            current_group = {"word": "", "start": start_time, "end": None}
+
+    if current_group["start"] is not None:
+        grouped_timestamps.append(current_group)
+
+    return grouped_timestamps
+
+
+grouped_timestamps = group_timestamps(linelevel_subtitles, duration=2.0)
+
 # %%
 dummy = False
 import requests, random
@@ -294,17 +327,21 @@ audioDuration = float(
 )
 
 transcript = "I have a transcript of a {audioDuration} second long video below in this format: start: <start_time>, end: <end_time>, line: <line_text>\n\n"
-for entry in linelevel_subtitles:
+for entry in grouped_timestamps:
     transcript += (
         f"start: {entry['start']}s , end: {entry['end']}s , line: {entry['word']}\n"
     )
 
-transcript += "\n\n\nI wwant to generate strictly some tags for this video transcript, each 3s long for the entire duration of the video, it will be further used to search for stock video footages for this video for the respective video duration. I want asmr kind of stock footage for my videos so generate tags accordingly. Make sure to keep the time duration between tags same. Return video tags in this json format: { 'tags': [{ start: <start_time>, end: <end_time>, tags: '' }] } \n\n"
+if videoType == "VIDEOS":
+    transcript += "\n\n\nExtract key objects, subjects from every line above and return them in this json format: { 'data': [{ start: <start_time>, end: <end_time>, tags: '' }] } \n\n"
+elif videoType == "IMAGES":
+    transcript += "\n\n\nExtract key objects, subjects from every line above and return them in this json format: { 'data': [{ start: <start_time>, end: <end_time>, keywords: '' }] } \n\n"
 
 client = OpenAI(
     # This is the default and can be omitted
     api_key=os.getenv("OPENAI_API_KEY"),
 )
+
 if dummy == False:
     chat_completion = client.chat.completions.create(
         # model="gpt-4-1106-preview",
@@ -312,89 +349,226 @@ if dummy == False:
         response_format={"type": "json_object"},
         messages=[{"role": "user", "content": transcript}],
     )
-    videoTags = json.loads(chat_completion.choices[0].message.content)["tags"]
+    videoTags = json.loads(chat_completion.choices[0].message.content)["data"]
 else:
-    videoTags = [
-        {"start": "0.0s", "end": "3.0s", "tags": "space, planets, solar system"},
-        {"start": "3.0s", "end": "6.0s", "tags": "exoplanet, 55 Cancri E, diamonds"},
-        {"start": "6.0s", "end": "9.0s", "tags": "carbon, atmosphere, pressure"},
-        {
-            "start": "9.0s",
-            "end": "12.0s",
-            "tags": "diamond formation, extreme conditions",
-        },
-        {
-            "start": "12.0s",
-            "end": "15.0s",
-            "tags": "scientific imagination, carbon atoms",
-        },
-        {"start": "15.0s", "end": "18.0s", "tags": "diamond rain, surreal beauty"},
-        {"start": "18.0s", "end": "21.0s", "tags": "planet mass, scientific estimates"},
-        {"start": "21.0s", "end": "24.0s", "tags": "mysteries of the universe"},
-        {"start": "24.0s", "end": "27.0s", "tags": "cosmic wonders, distant planets"},
-        {"start": "27.0s", "end": "30.0s", "tags": "wonder and awe"},
-        {"start": "30.0s", "end": "33.0s", "tags": "space exploration, universe"},
-        {"start": "33.0s", "end": "36.0s", "tags": "cosmic mysteries, contemplation"},
-    ]
+    videoTags = (
+        [
+            {"start": "0.0s", "end": "3.0s", "tags": "space, planets, solar system"},
+            {
+                "start": "3.0s",
+                "end": "6.0s",
+                "tags": "exoplanet, 55 Cancri E, diamonds",
+            },
+            {"start": "6.0s", "end": "9.0s", "tags": "carbon, atmosphere, pressure"},
+            {
+                "start": "9.0s",
+                "end": "12.0s",
+                "tags": "diamond formation, extreme conditions",
+            },
+            {
+                "start": "12.0s",
+                "end": "15.0s",
+                "tags": "scientific imagination, carbon atoms",
+            },
+            {"start": "15.0s", "end": "18.0s", "tags": "diamond rain, surreal beauty"},
+            {
+                "start": "18.0s",
+                "end": "21.0s",
+                "tags": "planet mass, scientific estimates",
+            },
+            {"start": "21.0s", "end": "24.0s", "tags": "mysteries of the universe"},
+            {
+                "start": "24.0s",
+                "end": "27.0s",
+                "tags": "cosmic wonders, distant planets",
+            },
+            {"start": "27.0s", "end": "30.0s", "tags": "wonder and awe"},
+            {"start": "30.0s", "end": "33.0s", "tags": "space exploration, universe"},
+            {
+                "start": "33.0s",
+                "end": "36.0s",
+                "tags": "cosmic mysteries, contemplation",
+            },
+        ]
+        if videoType == "VIDEOS"
+        else [
+            {
+                "start": "0.0s",
+                "end": "3.0s",
+                "keywords": "A dark ocean floor with a shadowy shipwreck",
+            },
+            {
+                "start": "3.0s",
+                "end": "6.0s",
+                "keywords": "Divers searching the ocean floor with flashlights",
+            },
+            {
+                "start": "6.0s",
+                "end": "9.0s",
+                "keywords": "Ancient artifacts being uncovered from the sand",
+            },
+            {
+                "start": "9.0s",
+                "end": "12.0s",
+                "keywords": "A treasure chest overflowing with gold coins",
+            },
+            {
+                "start": "12.0s",
+                "end": "15.0s",
+                "keywords": "A sunken ship surrounded by marine life",
+            },
+            {
+                "start": "15.0s",
+                "end": "18.0s",
+                "keywords": "Divers exploring a coral-encrusted wreckage",
+            },
+            {
+                "start": "18.0s",
+                "end": "21.0s",
+                "keywords": "A diver holding up a historical artifact",
+            },
+            {
+                "start": "21.0s",
+                "end": "24.0s",
+                "keywords": "A close-up of valuable silver coins and jewelry",
+            },
+            {
+                "start": "24.0s",
+                "end": "27.0s",
+                "keywords": "A 17th century emerald ring gleaming in the light",
+            },
+            {
+                "start": "27.0s",
+                "end": "30.0s",
+                "keywords": "A large haul of silver coins being raised to the surface",
+            },
+            {
+                "start": "30.0s",
+                "end": "33.0s",
+                "keywords": "A valuable treasure being cataloged by experts",
+            },
+            {
+                "start": "33.0s",
+                "end": "36.0s",
+                "keywords": "A museum display showcasing recovered artifacts",
+            },
+            {
+                "start": "36.0s",
+                "end": "39.0s",
+                "keywords": "Historians studying ancient relics in a laboratory",
+            },
+            {
+                "start": "39.0s",
+                "end": "42.0s",
+                "keywords": "A glimpse of historical civilization through recovered items",
+            },
+            {
+                "start": "42.0s",
+                "end": "45.0s",
+                "keywords": "An underwater explorer uncovering a hidden treasure",
+            },
+            {
+                "start": "45.0s",
+                "end": "48.0s",
+                "keywords": "A map leading to undiscovered underwater riches",
+            },
+        ]
+    )
 
 spinner.finish()
+print(json.dumps(videoTags, indent=4))
 # %%
+import requests
+from PIL import Image
+from io import BytesIO
+
 spinner = Spinner("Extracting Stock Video Footages based on video tags")
 spinner.start()
 
-url = "https://api.pexels.com/videos/search"
-headers = {"Authorization": "aZB4nryvsXVSv6T6EUWmf4flWHX1ZPestuRD0OQ91FgEL5H9XuRxnxHH"}
 
-# Collect video links for each tags per sentence
-for entry in videoTags:
-    tags = []
-    tags.append(entry["tags"])
-    # tags = entry['tags'].replace("_", " ").split(",")
-    tags.append(fallBackTag)
+def download_and_convert_image(image_url, output_file_path):
+    response = requests.get(image_url)
+    image = Image.open(BytesIO(response.content))
+    image = image.convert("RGBA") if image.format != "PNG" else image
+    image.save(output_file_path, "PNG")
+    # print(f"Image saved successfully as {output_file_path}") if response.status_code == 200 else print(f"Failed to download the image. Status code: {response.status_code}")
 
-    videos = []
-    for tag in tags:
-        tagVideos = (
-            requests.get(
-                url,
-                headers=headers,
-                params={
-                    "query": tag,
-                    "orientation": "portrait",
-                    "per_page": 80,
-                },
+
+if videoType == "VIDEOS":
+    print("Starting stock video fetching process...")
+
+    url = "https://api.pexels.com/videos/search"
+    headers = {
+        "Authorization": "aZB4nryvsXVSv6T6EUWmf4flWHX1ZPestuRD0OQ91FgEL5H9XuRxnxHH"
+    }
+
+    # Collect video links for each tags per sentence
+    for entry in videoTags:
+        tags = []
+        tags.append(entry["tags"])
+        # tags = entry['tags'].replace("_", " ").split(",")
+        tags.append(fallBackTag)
+
+        videos = []
+        for tag in tags:
+            tagVideos = (
+                requests.get(
+                    url,
+                    headers=headers,
+                    params={
+                        "query": tag,
+                        "orientation": "portrait",
+                        "per_page": 80,
+                    },
+                )
+                .json()
+                .get("videos")
             )
-            .json()
-            .get("videos")
-        )
-        firstVideoWidth = 0
-        firstVideoHeight = 0
-        for userVideos in tagVideos:
-            for video in userVideos.get("video_files"):
-                if video.get("width") != 0 and video.get("height") != 0:
-                    aspectRatio = video.get("width") / video.get("height")
-                    if aspectRatio < 1:
-                        if firstVideoWidth == 0 or firstVideoHeight == 0:
-                            firstVideoWidth = video.get("width")
-                            firstVideoHeight = video.get("height")
-                            videos.append(video)
-                        else:
-                            if firstVideoWidth == video.get(
-                                "width"
-                            ) and firstVideoHeight == video.get("height"):
-                                video["user"] = userVideos.get("user")
+            firstVideoWidth = 0
+            firstVideoHeight = 0
+            for userVideos in tagVideos:
+                for video in userVideos.get("video_files"):
+                    if video.get("width") != 0 and video.get("height") != 0:
+                        aspectRatio = video.get("width") / video.get("height")
+                        if aspectRatio < 1:
+                            if firstVideoWidth == 0 or firstVideoHeight == 0:
+                                firstVideoWidth = video.get("width")
+                                firstVideoHeight = video.get("height")
                                 videos.append(video)
-    # print(f"Found {len(videos)} videos")
-    entry["video"] = videos[random.randint(0, len(videos) - 1)]
-    videoPath = f"./assets/videos/stock_video_{int(time.time())}.mp4"
-    urllib.request.urlretrieve(entry["video"]["link"], videoPath)
-    entry["video"]["path"] = videoPath
+                            else:
+                                if firstVideoWidth == video.get(
+                                    "width"
+                                ) and firstVideoHeight == video.get("height"):
+                                    video["user"] = userVideos.get("user")
+                                    videos.append(video)
+        print(f"Found {len(videos)} videos")
+        entry["video"] = videos[random.randint(0, len(videos) - 1)]
+        videoPath = f"./assets/videos/stock_video_{int(time.time())}.mp4"
+        urllib.request.urlretrieve(entry["video"]["link"], videoPath)
+        entry["video"]["path"] = videoPath
+
+elif videoType == "IMAGES":
+    print("Starting AI Image Generation process...")
+    for entry in videoTags:
+        prompt = entry["keywords"]
+        command = f"/home/sumit/.nvm/versions/node/v16.20.1/bin/node utils/getLexicaImages.js {prompt}"
+        entry["imageUrl"] = run_shell_command(command)
+        if entry["imageUrl"] is not None:
+            image_path = f"./assets/images/img_{int(time.time())}.png"
+            download_and_convert_image(entry["imageUrl"], image_path)
+            entry["imagePath"] = image_path
+        else:
+            entry["imagePath"] = videoTags[0]["imagePath"]
 
 spinner.finish()
 # print(json.dumps(videoTags, indent=4))
 
 # %%
 import time
+import moviepy.editor as mp
+import math
+from PIL import Image
+import numpy as np
 
 audioDuration = (
     int(
@@ -406,64 +580,130 @@ audioDuration = (
     )
     + 2
 )
-spinner = Spinner(f"Trimming {len(videoTags)} videos")
+spinner = Spinner(f"Creating video from {len(videoTags)} tags")
 spinner.start()
 
 dummy = False
-for i, video in enumerate(videoTags):
-    videoPath = video["video"]["path"]
-    videoDuration = float(
-        audioDuration
-        if i == len(videoTags) - 1
-        else float(str(video["end"]).replace("s", ""))
-    ) - float(str(video["start"]).replace("s", ""))
-    newVideoPath = f"assets/videos/stock_video_{int(time.time())}.mp4"
-    # print(f"Trimming Video {i+1} to {videoDuration}s...", end=" ")
-    run_shell_command(
-        f"ffmpeg -i {videoPath} -ss 00 -to {videoDuration} -c:a copy -y {newVideoPath}"
-    )
-    video["video"]["trimmedPath"] = newVideoPath
-    if os.path.exists(videoPath):
-        os.remove(videoPath)
-    # print("Done...\n")
+output_video_path = "./assets/videos/trimmed_video.mp4"
+
+if videoType == "VIDEOS":
+    for i, video in enumerate(videoTags):
+        videoPath = video["video"]["path"]
+        videoDuration = float(
+            audioDuration
+            if i == len(videoTags) - 1
+            else float(str(video["end"]).replace("s", ""))
+        ) - float(str(video["start"]).replace("s", ""))
+        newVideoPath = f"assets/videos/stock_video_{int(time.time())}.mp4"
+        # print(f"Trimming Video {i+1} to {videoDuration}s...", end=" ")
+        run_shell_command(
+            f"ffmpeg -i {videoPath} -ss 00 -to {videoDuration} -c:a copy -y {newVideoPath}"
+        )
+        video["video"]["newPath"] = newVideoPath
+        # print("Done...\n")
+
+    if dummy == False:
+        mergeVideoCommand = "ffmpeg "
+
+        for video in videoTags:
+            videoPath = video["video"]["newPath"]
+            mergeVideoCommand += f"-i {videoPath} "
+
+        mergeVideoCommand += (
+            f'-i ./assets/audios/ai_audio.mp3 -i ./bg_audio.mp3 -filter_complex "'
+        )
+
+        for i, video in enumerate(videoTags):
+            mergeVideoCommand += f"[{i}:v]scale=1080:1920[v{i}];"
+
+        for i, video in enumerate(videoTags):
+            mergeVideoCommand += f"[v{i}]"
+
+        # Audio duration has to be 59s, since it is a youtube short
+        audioDuration = audioDuration if audioDuration < 59 else 59
+        mergeVideoCommand += f'concat=n={len(videoTags)}:v=1:a=0[outv];[{len(videoTags)}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vaudio];[{len(videoTags)+1}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vbackground];[vbackground]volume=0.05[vb];[vaudio][vb]amix=inputs=2:duration=longest[a]" -map "[outv]" -map "[a]" -vsync vfr -ss 00 -to {audioDuration} -crf 24 -y assets/videos/trimmed_video.mp4'
+
+        print("Executing this merge Command: ", mergeVideoCommand)
+
+        run_shell_command(mergeVideoCommand)
+
+elif videoType == "IMAGES":
+
+    def crop_to_aspect_ratio(image_path, target_size=(1080, 1920)):
+        img = Image.open(image_path)
+        img_aspect_ratio = img.width / img.height
+        target_aspect_ratio = target_size[0] / target_size[1]
+
+        if img_aspect_ratio > target_aspect_ratio:
+            # Landscape image, crop horizontally
+            new_width = int(img.height * target_aspect_ratio)
+            left = (img.width - new_width) // 2
+            img = img.crop((left, 0, left + new_width, img.height))
+        elif img_aspect_ratio < target_aspect_ratio:
+            # Portrait image, crop vertically
+            new_height = int(img.width / target_aspect_ratio)
+            top = (img.height - new_height) // 2
+            img = img.crop((0, top, img.width, top + new_height))
+
+        return np.array(img.resize(target_size, Image.LANCZOS))
+
+    def zoom_in_effect(clip, zoom_ratio=0.2):
+        def effect(get_frame, t):
+            img = Image.fromarray(get_frame(t))
+            base_size = img.size
+
+            new_size = [
+                math.ceil(img.size[0] * (1 + (zoom_ratio * t))),
+                math.ceil(img.size[1] * (1 + (zoom_ratio * t))),
+            ]
+
+            # The new dimensions must be even.
+            new_size[0] = new_size[0] + (new_size[0] % 2)
+            new_size[1] = new_size[1] + (new_size[1] % 2)
+
+            img = img.resize(new_size, Image.LANCZOS)
+
+            x = math.ceil((new_size[0] - base_size[0]) / 2)
+            y = math.ceil((new_size[1] - base_size[1]) / 2)
+
+            img = img.crop([x, y, x + base_size[0], y + base_size[1]])
+
+            result = np.array(img)
+            img.close()
+
+            return result
+
+        return clip.fl(effect)
+
+    size = (1080, 1920)
+    slides = []
+    for n, entry in enumerate(videoTags):
+        img_array = crop_to_aspect_ratio(entry["imagePath"], size)
+
+        videoDuration = float(
+            audioDuration
+            if n == len(videoTags) - 1
+            else float(str(entry["end"]).replace("s", ""))
+        ) - float(str(entry["start"]).replace("s", ""))
+
+        # Creating an ImageClip with the desired size and setting the fps
+        img_clip = mp.ImageClip(img_array, duration=videoDuration)
+        img_clip = img_clip.set_position(("center", "center")).resize(height=size[1])
+        img_clip = img_clip.set_fps(25)  # Set the desired frames per second
+
+        # Applying the zoom effect
+        img_clip = zoom_in_effect(img_clip, 0.05)
+
+        # Appending the resulting clip to the slides
+        slides.append(img_clip)
+
+    # Concatenating the slides to create the final video
+    video = mp.concatenate_videoclips(slides)
+    audioclip = mp.AudioFileClip(audioPath)
+    video = video.set_audio(audioclip)
+    video.write_videofile(output_video_path)
 
 spinner.finish()
-
-if dummy == False:
-    mergeVideoCommand = "ffmpeg "
-
-    for video in videoTags:
-        videoPath = video["video"]["trimmedPath"]
-        mergeVideoCommand += f"-i {videoPath} "
-
-    mergeVideoCommand += (
-        f'-i ./assets/audios/ai_audio.mp3 -i ./bg_audio.mp3 -filter_complex "'
-    )
-
-    for i, video in enumerate(videoTags):
-        mergeVideoCommand += f"[{i}:v]scale=1080:1920[v{i}];"
-
-    for i, video in enumerate(videoTags):
-        mergeVideoCommand += f"[v{i}]"
-
-    # Audio duration has to be 59s, since it is a youtube short
-    audioDuration = audioDuration if audioDuration < 59 else 59
-    mergeVideoCommand += f'concat=n={len(videoTags)}:v=1:a=0[outv];[{len(videoTags)}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vaudio];[{len(videoTags)+1}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[vbackground];[vbackground]volume=0.05[vb];[vaudio][vb]amix=inputs=2:duration=longest[a]" -map "[outv]" -map "[a]" -vsync vfr -ss 00 -to {audioDuration} -crf 24 -y assets/videos/trimmed_video.mp4'
-
-    print("\n\nExecuting FFMPEG command: ", mergeVideoCommand)
-    spinner = Spinner("FFMPEG merge Command")
-    spinner.start()
-
-    run_shell_command(mergeVideoCommand)
-    for video in videoTags:
-        trimmedVideoPath = video["video"]["trimmedPath"]
-        if os.path.exists(trimmedVideoPath):
-            os.remove(trimmedVideoPath)
-
-    spinner.finish()
-
-output_video_path = "./assets/videos/trimmed_video.mp4"
-print(f"\nCombined video saved to: {output_video_path}")
 
 # %%
 from moviepy.editor import TextClip, CompositeVideoClip, ColorClip
