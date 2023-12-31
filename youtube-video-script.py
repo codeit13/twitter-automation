@@ -551,7 +551,7 @@ elif videoType == "IMAGES":
     print("Starting AI Image Generation process...")
     for entry in videoTags:
         prompt = entry["keywords"]
-        command = f"/home/sumit/.nvm/versions/node/v16.20.1/bin/node utils/getLexicaImages.js {prompt}"
+        command = f"/home/ubuntu/.nvm/versions/node/v16.20.1/bin/node utils/getLexicaImages.js {prompt}"
         entry["imageUrl"] = run_shell_command(command)
         if entry["imageUrl"] is not None:
             image_path = f"./assets/images/img_{int(time.time())}.png"
