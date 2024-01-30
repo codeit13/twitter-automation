@@ -3,6 +3,10 @@ node_modules
 package-lock.json
 
 assets/*/*
+
+!assets/*/.gitkeep
+!assets/*/yt_upload_args.json
+
 .credentials/*
 
 # assets/*/*.png
